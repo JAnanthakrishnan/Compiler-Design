@@ -1,0 +1,6 @@
+begin
+read(a);
+read(b);
+d = a + 3*b;
+write(d);
+end
