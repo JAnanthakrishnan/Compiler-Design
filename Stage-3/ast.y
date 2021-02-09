@@ -32,7 +32,7 @@ program         : START instructions END        {
                 ;
 instructions    : instructions stmt             {
                                                     // printf("Found instruction statement\n");
-                                                    $<tree>$ = createTree(-1,-1,"Stmnt",_CONNECTOR,$<tree>1,$<tree>2);
+                                                    $<tree>$ = createTree(-1,_TYPELESS,"Stmnt",_CONNECTOR,$<tree>1,$<tree>2);
                                                 }
                 | stmt                          {
                                                     // printf("Found Statement\n");
@@ -60,47 +60,76 @@ stmt            : inputstmt                     {
                                                     $<tree>$ = $<tree>1;
                                                 }
                 ;
-ifstmt          : IF '(' expr ')' THEN instructions ELSE instructions ENDIF ';'
+ifstmt          : IF '(' expr ')' THEN instructions ELSE instructions ENDIF ';'  
                 | IF '(' expr ')' THEN instructions ENDIF ';'
 
 whilestmt       : WHILE '(' expr ')' DO instructions ENDWHILE ';'
 inputstmt       : READ '(' ID ')' ';'           {
                                                     // printf("Found Read\n");
-                                                    $<tree>$ = createTree(-1,-1,"Read",_READ,$<tree>3,NULL);
+                                                    $<tree>$ = createTree(-1,_TYPELESS,"Read",_READ,$<tree>3,NULL);
                                                 }
                 ;
 outputstmt      : WRITE '(' expr ')' ';'          {
                                                     // printf("Found Write\n");
-                                                    $<tree>$ = createTree(-1,-1,"Write",_WRITE,$<tree>3,NULL);
+                                                    $<tree>$ = createTree(-1,_TYPELESS,"Write",_WRITE,$<tree>3,NULL);
                                                 }
                 ;
 assignstmt      : ID ASSIGN expr ';'            {
                                                     // printf("Found Assign\n");
-                                                    $<tree>$ = createTree(-1,-1,"=",_ASSIGN,$<tree>1,$<tree>3);
+                                                    $<tree>$ = createTree(-1,_TYPELESS,"=",_ASSIGN,$<tree>1,$<tree>3);
+                                                    typecheck(_INTEGER,$<tree>$)
                                                 }
                 ;
 expr            : expr PLUS expr                {
                                                     // printf("PLUS\n");
-                                                    $<tree>$ = createTree(-1,-1,"+",_PLUS,$<tree>1,$<tree>3);
+                                                    $<tree>$ = createTree(-1,_INTEGER,"+",_PLUS,$<tree>1,$<tree>3);
+                                                    typecheck(_INTEGER,$<tree>$);
                                                 }
                 | expr MINUS expr               {
                                                     // printf("MINUS\n");
-                                                    $<tree>$ = createTree(-1,-1,"-",_MINUS,$<tree>1,$<tree>3);
+                                                    $<tree>$ = createTree(-1,_INTEGER,"-",_MINUS,$<tree>1,$<tree>3);
+                                                    typecheck(_INTEGER,$<tree>$);
                                                 }
                 | expr MUL expr                 {
                                                     // printf("MUL\n");
-                                                    $<tree>$ = createTree(-1,-1,"*",_MUL,$<tree>1,$<tree>3);
+                                                    $<tree>$ = createTree(-1,_INTEGER,"*",_MUL,$<tree>1,$<tree>3);
+                                                    typecheck(_INTEGER,$<tree>$);
                                                 }
                 | expr DIV expr                 {
                                                     // printf("DIV\n");
-                                                    $<tree>$ = createTree(-1,-1,"/",_DIV,$<tree>1,$<tree>3);
+                                                    $<tree>$ = createTree(-1,_INTEGER,"/",_DIV,$<tree>1,$<tree>3);
+                                                    typecheck(_INTEGER,$<tree>$);
                                                 }
-                | expr LT expr
-                | expr GT expr
-                | expr GTE expr
-                | expr LTE expr
-                | expr EQ expr
-                | expr NEQ expr
+                | expr LT expr                  {
+                                                    // printf("LT\n");
+                                                    $<tree>$ = createTree(-1,_BOOLEAN,"/",_LT,$<tree>1,$<tree>3);
+                                                    // typecheck(_BOOLEAN);
+                                                }
+                | expr GT expr                  {
+                                                    // printf("GT\n");
+                                                    $<tree>$ = createTree(-1,_BOOLEAN,"/",_GT,$<tree>1,$<tree>3);
+                                                //    typecheck(_BOOLEAN);
+                                                }
+                | expr GTE expr                 {
+                                                    // printf("GTE\n");
+                                                    $<tree>$ = createTree(-1,_BOOLEAN,"/",_GTE,$<tree>1,$<tree>3);
+                                                    // typecheck(_BOOLEAN);
+                                                }
+                | expr LTE expr                 {
+                                                    // printf("LTE\n");
+                                                    $<tree>$ = createTree(-1,_BOOLEAN,"/",_LTE,$<tree>1,$<tree>3);
+                                                    // typecheck(_BOOLEAN);
+                                                }
+                | expr EQ expr                  {
+                                                    // printf("EQ\n");
+                                                    $<tree>$ = createTree(-1,_BOOLEAN,"/",_EQ,$<tree>1,$<tree>3);
+                                                    // typecheck(_BOOLEAN);
+                                                }
+                | expr NEQ expr                 {
+                                                    // printf("NEQ\n");
+                                                    $<tree>$ = createTree(-1,_BOOLEAN,"/",_NEQ,$<tree>1,$<tree>3);
+                                                    // typecheck(_BOOLEAN);
+                                                }
                 | '(' expr ')'                  {
                                                     $<tree>$=$<tree>2;
                                                 }

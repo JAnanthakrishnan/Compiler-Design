@@ -6,9 +6,11 @@
 #define _READ 6
 #define _WRITE 7
 #define _CONNECTOR 8
-#define _INT 9
-#define _ID 10
-#define _NUM 11
+#define _INTEGER 9
+#define _BOOLEAN 10
+#define _TYPELESS 11
+#define _ID 12
+#define _NUM 13
 void yyerror(char const* s);
 typedef struct tnode {
     int val;	// value of a number for NUM nodes.
