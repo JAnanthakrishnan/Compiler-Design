@@ -143,8 +143,61 @@ int codegen(struct tnode* t, FILE* output) {
         fprintf(output, "L%d:\n", label2);
         break;
     case _IF:
+        label1 = getLabel();
+        r1 = getReg();
+        r2 = getReg();
+        if (t->cond->left->varname != NULL)
+        {
+            a1 = getAddress(*(t->cond->left->varname));
+            fprintf(output, "MOV R%d,[%d]\n", r1, a1);
+        }
+        else {
+            fprintf(output, "MOV R%d,%d\n", r1, t->cond->left->val);
+        }
+        if (t->cond->right->varname != NULL) {
+            a2 = getAddress(*(t->cond->right->varname));
+            fprintf(output, "MOV R%d,[%d]\n", r2, a2);
+        }
+        else {
+            fprintf(output, "MOV R%d,%d\n", r2, t->cond->right->val);
+        }
+
+        fprintf(output, "%s R%d,R%d\n", t->cond->varname, r1, r2);
+        freeReg();
+        fprintf(output, "JZ R%d,L%d\n", r1, label1);
+        freeReg();
+        codegen(t->left, output);
+        fprintf(output, "L%d:\n", label1);
         break;
     case _IFELSE:
+        label1 = getLabel();
+        label2 = getLabel();
+        r1 = getReg();
+        r2 = getReg();
+        if (t->cond->left->varname != NULL)
+        {
+            a1 = getAddress(*(t->cond->left->varname));
+            fprintf(output, "MOV R%d,[%d]\n", r1, a1);
+        }
+        else {
+            fprintf(output, "MOV R%d,%d\n", r1, t->cond->left->val);
+        }
+        if (t->cond->right->varname != NULL) {
+            a2 = getAddress(*(t->cond->right->varname));
+            fprintf(output, "MOV R%d,[%d]\n", r2, a2);
+        }
+        else {
+            fprintf(output, "MOV R%d,%d\n", r2, t->cond->right->val);
+        }
+        fprintf(output, "%s R%d,R%d\n", t->cond->varname, r1, r2);
+        freeReg();
+        fprintf(output, "JZ R%d,L%d\n", r1, label1);
+        freeReg();
+        codegen(t->left, output);
+        fprintf(output, "JMP L%d\n", label2);
+        fprintf(output, "L%d:\n", label1);
+        codegen(t->right, output);
+        fprintf(output, "L%d:\n", label2);
         break;
     }
 

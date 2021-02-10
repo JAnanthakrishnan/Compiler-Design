@@ -1,5 +1,6 @@
-generate:
+copy:
 	cp output.xsm /home/ak/xsm_expl/Stage-3/output.xsm
+	cp final.xsm /home/ak/xsm_expl/Stage-3/final.xsm
 compile:
 	@read -p "Enter Module Name:" module; \
     lex_file=$$module.l; \
@@ -9,7 +10,9 @@ compile:
 	yacc -d $$yacc_file; \
 	gcc lex.yy.c y.tab.c -o $$output_file; \
 	./$$output_file input.expl; \
-	cp output.xsm /home/ak/xsm_expl/Stage-3/output.xsm
+	lex label_translator.l; \
+	gcc lex.yy.c; \
+	./a.out output.xsm
 run: 
 	@cd /home/ak/xsm_expl ;\
-	./xsm -l Stage-0/library.lib -e Stage-3/output.xsm
+	./xsm -l Stage-0/library.lib -e Stage-3/final.xsm

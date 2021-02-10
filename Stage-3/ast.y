@@ -32,8 +32,8 @@ program         : START instructions END        {
                                                 }
                 | START END                     {printf("Completed\n");exit(1);}
                 ;
-ifstmt          : IF '(' expr ')' THEN instructions ELSE instructions ENDIF ';'  {printf("Found IF_ELSE\n"); typecheck(_BOOLEAN,$<tree>3); $<tree>$ = createTree(-1,_TYPELESS,"IFELSE",_IFELSE,$<tree>6,$<tree>8,NULL);}
-                | IF '(' expr ')' THEN instructions ENDIF ';'                    {printf("Found IF \n");typecheck(_BOOLEAN,$<tree>3); $<tree>$ = createTree(-1,_TYPELESS,"IF",_IF,$<tree>6,NULL,NULL);}
+ifstmt          : IF '(' expr ')' THEN instructions ELSE instructions ENDIF ';'  {printf("Found IF_ELSE\n"); typecheck(_BOOLEAN,$<tree>3); $<tree>$ = createTree(-1,_TYPELESS,"IFELSE",_IFELSE,$<tree>6,$<tree>8,$<tree>3);}
+                | IF '(' expr ')' THEN instructions ENDIF ';'                    {printf("Found IF \n");typecheck(_BOOLEAN,$<tree>3); $<tree>$ = createTree(-1,_TYPELESS,"IF",_IF,$<tree>6,NULL,$<tree>3);}
                                                                                  
                 ;
 whilestmt       : WHILE '(' expr ')' DO instructions ENDWHILE ';'                {typecheck(_BOOLEAN,$<tree>3); $<tree>$ = createTree(-1,_TYPELESS,"WHILE",_WHILE,$<tree>6,NULL,$<tree>3);}

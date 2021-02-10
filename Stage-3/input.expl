@@ -1,8 +1,10 @@
 begin 
 read(a);
 read(b);
-while(a<b) do 
-a = a + 1; 
-write(a); 
-endwhile;
+read(c);
+if (a < b) then
+ if (b < c) then write(c); else write(b); endif;
+else
+ if (a < c) then write(c); else write(a); endif;
+endif;
 end

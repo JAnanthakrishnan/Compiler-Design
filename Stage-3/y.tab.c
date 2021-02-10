@@ -1437,19 +1437,19 @@ yyreduce:
 
   case 4:
 #line 35 "ast.y"
-                                                                                 {printf("Found IF_ELSE\n"); typecheck(_BOOLEAN,(yyvsp[-7].tree)); (yyval.tree) = createTree(-1,_TYPELESS,"IFELSE",_IFELSE,(yyvsp[-4].tree),(yyvsp[-2].tree),NULL);}
+                                                                                 {printf("Found IF_ELSE\n"); typecheck(_BOOLEAN,(yyvsp[-7].tree)); (yyval.tree) = createTree(-1,_TYPELESS,"IFELSE",_IFELSE,(yyvsp[-4].tree),(yyvsp[-2].tree),(yyvsp[-7].tree));}
 #line 1442 "y.tab.c"
     break;
 
   case 5:
 #line 36 "ast.y"
-                                                                                 {printf("Found IF \n");typecheck(_BOOLEAN,(yyvsp[-5].tree)); (yyval.tree) = createTree(-1,_TYPELESS,"IF",_IF,(yyvsp[-2].tree),NULL,NULL);}
+                                                                                 {printf("Found IF \n");typecheck(_BOOLEAN,(yyvsp[-5].tree)); (yyval.tree) = createTree(-1,_TYPELESS,"IF",_IF,(yyvsp[-2].tree),NULL,(yyvsp[-5].tree));}
 #line 1448 "y.tab.c"
     break;
 
   case 6:
 #line 39 "ast.y"
-                                                                                 {typecheck(_BOOLEAN,(yyvsp[-5].tree)); (yyval.tree) = createTree(-1,_TYPELESS,"WHILE",_WHILE,(yyvsp[-5].tree),(yyvsp[-2].tree),NULL);}
+                                                                                 {typecheck(_BOOLEAN,(yyvsp[-5].tree)); (yyval.tree) = createTree(-1,_TYPELESS,"WHILE",_WHILE,(yyvsp[-2].tree),NULL,(yyvsp[-5].tree));}
 #line 1454 "y.tab.c"
     break;
 
