@@ -1,5 +1,6 @@
 int MAX_REG = 20;
 int REG = 0;
+int LABEL = 0;
 
 int getReg() {
     if (REG == MAX_REG) {
@@ -7,6 +8,12 @@ int getReg() {
         exit(1);
     }
     return REG++;
+}
+int getLabel() {
+    return LABEL++;
+}
+int getAddress(char c) {
+    return (4096 + c - 'a');
 }
 
 void freeReg() {
@@ -16,7 +23,8 @@ void freeReg() {
 
 int codegen(struct tnode* t, FILE* output) {
     int r1, r2, address, current = 0;
-
+    int label1, label2;
+    int a1, a2;
     if (t == NULL) {
         return -1;
     }
@@ -60,7 +68,7 @@ int codegen(struct tnode* t, FILE* output) {
         freeReg();
         return r1;
     case _ASSIGN:
-        address = 4096 + *(t->left->varname) - 'a';
+        address = getAddress(*(t->left->varname));
         r2 = codegen(t->right, output);
         fprintf(output, "MOV [%d], R%d\n", address, r2);
         freeReg();
@@ -92,7 +100,7 @@ int codegen(struct tnode* t, FILE* output) {
         REG = current;
         break;
     case _READ:
-        address = 4096 + *(t->left->varname) - 'a';
+        address = getAddress(*(t->left->varname));
         for (int i = 0; i <= REG; i++)
             fprintf(output, "PUSH R%d\n", i);
         current = REG;
@@ -116,7 +124,30 @@ int codegen(struct tnode* t, FILE* output) {
             fprintf(output, "POP R%d\n", i);
         REG = current;
         break;
+    case _WHILE:
+        label1 = getLabel();
+        label2 = getLabel();
+        fprintf(output, "L%d:\n", label1);
+        a1 = getAddress(*(t->cond->left->varname));
+        a2 = getAddress(*(t->cond->right->varname));
+        r1 = getReg();
+        r2 = getReg();
+        fprintf(output, "MOV R%d,[%d]\n", r1, a1);
+        fprintf(output, "MOV R%d,[%d]\n", r2, a2);
+        fprintf(output, "%s R%d,R%d\n", t->cond->varname, r1, r2);
+        freeReg();
+        fprintf(output, "JZ R%d,L%d\n", r1, label2);
+        freeReg();
+        codegen(t->left, output);
+        fprintf(output, "JMP L%d\n", label1);
+        fprintf(output, "L%d:\n", label2);
+        break;
+    case _IF:
+        break;
+    case _IFELSE:
+        break;
     }
+
 }
 void print(int r, FILE* output) {
     /*

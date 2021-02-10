@@ -7,12 +7,12 @@
 %}
 %option noyywrap
 %%
-[0-9]+      {number = atoi(yytext); yylval.tree = createTree(number,_INTEGER,NULL,_NUM,NULL,NULL);return NUM;}
+[0-9]+      {number = atoi(yytext); yylval.tree = createTree(number,_INTEGER,NULL,_NUM,NULL,NULL,NULL);return NUM;}
 [a-z]       {
                 char *c;
                 c=(char*) malloc(sizeof(yytext));
                 strcpy(c,yytext);
-                yylval.tree = createTree(-1,_INTEGER,c,_ID,NULL,NULL);
+                yylval.tree = createTree(-1,_INTEGER,c,_ID,NULL,NULL,NULL);
                 return ID;
             }
 begin       {return START;}
