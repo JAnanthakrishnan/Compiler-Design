@@ -12,7 +12,7 @@ compile:
 	./$$output_file input.expl; \
 	lex label_translator.l; \
 	gcc lex.yy.c; \
-	./a.out output.xsm
+	./a.out output.xsm 
 run: 
 	@cd /home/ak/xsm_expl ;\
 	./xsm -l Stage-0/library.lib -e Stage-3/final.xsm

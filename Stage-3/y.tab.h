@@ -72,7 +72,9 @@ extern int yydebug;
     LTE = 278,
     GTE = 279,
     EQ = 280,
-    NEQ = 281
+    NEQ = 281,
+    CONTINUE = 282,
+    BREAK = 283
   };
 #endif
 /* Tokens.  */
@@ -100,6 +102,8 @@ extern int yydebug;
 #define GTE 279
 #define EQ 280
 #define NEQ 281
+#define CONTINUE 282
+#define BREAK 283
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
@@ -109,7 +113,7 @@ union YYSTYPE
 
     struct tnode* tree;
 
-#line 113 "y.tab.h"
+#line 117 "y.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

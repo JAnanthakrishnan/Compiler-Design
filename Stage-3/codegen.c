@@ -24,6 +24,8 @@ void freeReg() {
 int codegen(struct tnode* t, FILE* output) {
     int r1, r2, address, current = 0;
     int label1, label2;
+    static int prevLabel1, prevLabel2;
+    static int isWhile = 0;
     int a1, a2;
     if (t == NULL) {
         return -1;
@@ -125,15 +127,31 @@ int codegen(struct tnode* t, FILE* output) {
         REG = current;
         break;
     case _WHILE:
+        printf("From while\n");
+        isWhile = 1;
         label1 = getLabel();
         label2 = getLabel();
+        printf("Label1 from while is %d\nLabel2 from while is %d\n", label1, label2);
+        prevLabel1 = label1;
+        prevLabel2 = label2;
         fprintf(output, "L%d:\n", label1);
-        a1 = getAddress(*(t->cond->left->varname));
-        a2 = getAddress(*(t->cond->right->varname));
         r1 = getReg();
         r2 = getReg();
-        fprintf(output, "MOV R%d,[%d]\n", r1, a1);
-        fprintf(output, "MOV R%d,[%d]\n", r2, a2);
+        if (t->cond->left->varname != NULL)
+        {
+            a1 = getAddress(*(t->cond->left->varname));
+            fprintf(output, "MOV R%d,[%d]\n", r1, a1);
+        }
+        else {
+            fprintf(output, "MOV R%d,%d\n", r1, t->cond->left->val);
+        }
+        if (t->cond->right->varname != NULL) {
+            a2 = getAddress(*(t->cond->right->varname));
+            fprintf(output, "MOV R%d,[%d]\n", r2, a2);
+        }
+        else {
+            fprintf(output, "MOV R%d,%d\n", r2, t->cond->right->val);
+        }
         fprintf(output, "%s R%d,R%d\n", t->cond->varname, r1, r2);
         freeReg();
         fprintf(output, "JZ R%d,L%d\n", r1, label2);
@@ -141,6 +159,17 @@ int codegen(struct tnode* t, FILE* output) {
         codegen(t->left, output);
         fprintf(output, "JMP L%d\n", label1);
         fprintf(output, "L%d:\n", label2);
+        isWhile = 0;
+        break;
+    case _BREAK:
+        if (isWhile) {
+            fprintf(output, "JMP L%d\n", prevLabel2);
+        }
+        break;
+    case _CONTINUE:
+        if (isWhile) {
+            fprintf(output, "JMP L%d\n", prevLabel1);
+        }
         break;
     case _IF:
         label1 = getLabel();

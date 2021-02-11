@@ -17,7 +17,7 @@
 %token START END WRITE READ ASSIGN PLUS MINUS MUL DIV NUM ID IF THEN ELSE ENDIF WHILE DO ENDWHILE 
 %left PLUS MINUS
 %left MUL DIV
-%nonassoc LT GT LTE GTE EQ NEQ
+%nonassoc LT GT LTE GTE EQ NEQ CONTINUE BREAK
 
 
 %%
@@ -33,10 +33,9 @@ program         : START instructions END        {
                 | START END                     {printf("Completed\n");exit(1);}
                 ;
 ifstmt          : IF '(' expr ')' THEN instructions ELSE instructions ENDIF ';'  {printf("Found IF_ELSE\n"); typecheck(_BOOLEAN,$<tree>3); $<tree>$ = createTree(-1,_TYPELESS,"IFELSE",_IFELSE,$<tree>6,$<tree>8,$<tree>3);}
-                | IF '(' expr ')' THEN instructions ENDIF ';'                    {printf("Found IF \n");typecheck(_BOOLEAN,$<tree>3); $<tree>$ = createTree(-1,_TYPELESS,"IF",_IF,$<tree>6,NULL,$<tree>3);}
-                                                                                 
+                | IF '(' expr ')' THEN instructions ENDIF ';'                    {printf("Found IF \n");typecheck(_BOOLEAN,$<tree>3); $<tree>$ = createTree(-1,_TYPELESS,"IF",_IF,$<tree>6,NULL,$<tree>3);}                                                                     
                 ;
-whilestmt       : WHILE '(' expr ')' DO instructions ENDWHILE ';'                {typecheck(_BOOLEAN,$<tree>3); $<tree>$ = createTree(-1,_TYPELESS,"WHILE",_WHILE,$<tree>6,NULL,$<tree>3);}
+whilestmt       : WHILE '(' expr ')' DO instructions ENDWHILE ';'                               {typecheck(_BOOLEAN,$<tree>3); $<tree>$ = createTree(-1,_TYPELESS,"WHILE",_WHILE,$<tree>6,NULL,$<tree>3);}
                 ;
 instructions    : instructions stmt             {
                                                     printf("Found instruction statement\n");
@@ -66,6 +65,14 @@ stmt            : inputstmt                     {
                 | whilestmt                     {
                                                     printf("Found whlestmt\n");
                                                     $<tree>$ = $<tree>1;
+                                                }
+                | BREAK ';'                     {
+                                                    printf("Found Breakstmt\n");
+                                                    $<tree>$ = createTree(-1,_TYPELESS,"Break",_BREAK,NULL,NULL,NULL);
+                                                }
+                | CONTINUE ';'                     {
+                                                    printf("Found continue\n");
+                                                    $<tree>$ = createTree(-1,_TYPELESS,"Continue",_CONTINUE,NULL,NULL,NULL);
                                                 }
                 ;
 inputstmt       : READ '(' ID ')' ';'           {

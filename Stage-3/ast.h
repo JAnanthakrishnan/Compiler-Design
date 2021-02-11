@@ -20,6 +20,10 @@
 #define _IFELSE 20
 #define _IF 21
 #define _WHILE 22
+#define _WHILE_BREAK 23
+#define _WHILE_CONTINUE 24
+#define _BREAK 25
+#define _CONTINUE 26
 void yyerror(char const* s);
 typedef struct tnode {
     int val;	// value of a number for NUM nodes.
