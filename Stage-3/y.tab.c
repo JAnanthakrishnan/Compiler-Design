@@ -1696,7 +1696,7 @@ yyreduce:
   case 31:
 #line 149 "ast.y"
                                                 {
-                                                    (yyval.tree)=(yyval.tree);
+                                                    (yyval.tree)=(yyvsp[0].tree);
                                                 }
 #line 1702 "y.tab.c"
     break;

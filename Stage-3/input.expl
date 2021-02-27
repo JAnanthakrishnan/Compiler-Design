@@ -1,15 +1,3 @@
-begin 
-read(a);
-read(b);
-while(a==a) do
-if(a==10) then
-a=a+1;
-continue;
-endif;
-write(a);
-a=a+1;
-if(a==20) then
-break;
-endif;
-endwhile;
+begin
+write(55);
 end

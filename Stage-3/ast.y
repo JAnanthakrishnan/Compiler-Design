@@ -147,7 +147,7 @@ expr            : expr PLUS expr                {
                                                     $<tree>$ = $<tree>1;
                                                 }
                 | ID                            {
-                                                    $<tree>$=$<tree>$;
+                                                    $<tree>$=$<tree>1;
                                                 }
                 ;
 
