@@ -2,3 +2,5 @@
 **/y.tab.c
 **/y.tab.h
 **/*.exe
+**/y.output
+**/a.out
