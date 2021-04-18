@@ -2,5 +2,8 @@
 **/y.tab.c
 **/y.tab.h
 **/*.exe
+**/*.xsm
 **/y.output
 **/a.out
+
+.vscode/
