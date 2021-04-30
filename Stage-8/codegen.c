@@ -29,7 +29,7 @@ int getAddress(struct tnode *t, FILE *output)
         }
         else
         {
-            printf("The varname of left  is %s\n", t->left->varname);
+            // printf("The varname of left  is %s\n", t->left->varname);
             fprintf(output, "MOV R%d,BP\n", r1);
             fprintf(output, "ADD R%d,%d\n", r1, t->left->Lentry->binding);
         }
@@ -48,7 +48,7 @@ int getAddress(struct tnode *t, FILE *output)
                 fprintf(output, "ADD R%d, %d\n", r1, mflist->Fieldindex);
             t = t->right;
         }
-        printf("T->left->varname = %s\nt->left->type->name = %s\n", t->left->varname, t->left->type->name);
+        // printf("T->left->varname = %s\nt->left->type->name = %s\n", t->left->varname, t->left->type->name);
         if (t->left->Ctype != NULL)
         {
             mflist = Class_Flookup(t->left->Ctype, t->right->varname);
@@ -83,7 +83,7 @@ int getAddress(struct tnode *t, FILE *output)
     {
         int r1 = getReg();
         fprintf(output, "MOV R%d,BP\n", r1);
-        printf("Local entry %s \n", t->Lentry->name);
+        // printf("Local entry %s \n", t->Lentry->name);
         fprintf(output, "ADD R%d, %d\n", r1, t->Lentry->binding);
         return r1;
     }
@@ -494,7 +494,7 @@ int codegen(struct tnode *t, FILE *output)
 
         fprintf(output, "POP BP\n");
         fprintf(output, "RET\n");
-        printf("Return\n");
+        // printf("Return\n");
         break;
 
     case _FUNCTION:
@@ -570,7 +570,7 @@ int codegen(struct tnode *t, FILE *output)
             f = f->right;
         }
 
-        printf("The rightmost %s\n", f->varname);
+        // printf("The rightmost %s\n", f->varname);
         struct Memberfunclist *mentry = Class_Mlookup(f->Ctype, t->right->varname);
         fprintf(output, "ADD R%d, %d\n", r1, mentry->Funcposition);
         fprintf(output, "MOV R%d, [R%d]\n", r1, r1);
@@ -603,7 +603,7 @@ int codegen(struct tnode *t, FILE *output)
             fprintf(output, "POP R%d\n", i);
         REG = current;
         r1 = getReg();
-        printf("Was done here\n");
+        // printf("Was done here\n");
         return r1;
         break;
     }
@@ -626,7 +626,7 @@ void maingen(struct tnode *t, FILE *output)
 void calleegen(struct tnode *t, FILE *output, struct Gsymbol *gentry, struct Memberfunclist *mentry)
 {
     // printf("Printing from calleegen\n");
-    printLtable(Lstart);
+    // printLtable(Lstart);
     if (gentry != NULL)
         fprintf(output, "F%d:\n", gentry->flabel);
     else

@@ -99,12 +99,12 @@ self        {
                 return ID;
              }
 {str}       {
-                printf("Got string\n");
+                // printf("Got string\n");
                 char *c;
                 c=(char*) malloc(sizeof(yytext));
                 strcpy(c,yytext);
                 int length = strlen(c);
-                printf("%s\n",c);
+                // printf("%s\n",c);
                 yylval.tree = createTree(-1,TLookup("STR"),c,_STRING,NULL,NULL,NULL,NULL,NULL,NULL);
                 return STRING;
             }

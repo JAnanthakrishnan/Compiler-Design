@@ -6,6 +6,7 @@
     #include "class.c"
     #include "codegen.c"
     extern FILE *yyin;
+    int oexpl = 0;
     struct Gsymbol* Gstart=NULL;
     struct Lsymbol* Lstart = NULL;
     struct Typetable *TypeTable = NULL;
@@ -67,6 +68,7 @@ ClassDefBlock   : CLASS ClassDefList ENDCLASS       {
                                                         output = fopen("preinitial.xsm","w");
                                                         init(output);
                                                         fclose(output);
+                                                        oexpl = 1;
                                                     }
                 ;
 ClassDefList    : ClassDefList ClassDef             {}
@@ -84,7 +86,7 @@ Cname           : ID                                {$<classname>$ = CInstall($<
 MFieldList      : MFieldList MFld                   {}
                 | MFld                              {}
                 ;
-MFld            : ClassType ID ';'                  {Class_Finstall(cptr,classentry,$<types>1,$<tree>2->varname); printf("INstalled\n");}
+MFld            : ClassType ID ';'                  {Class_Finstall(cptr,classentry,$<types>1,$<tree>2->varname); }
                 ;
 MethodDecl      : MethodDecl MDecl                  {}
                 | MDecl                             {}
@@ -151,13 +153,21 @@ TypeName        : INT                               {$<types>$ = TLookup("INT");
                 ;
 GdeclBlock      : DECL GdeclList ENDDECL            {
                                                         initialized = 1;
+                                                        if(oexpl==0){
+                                                            output = fopen("output.xsm","w");
+                                                            initExpl(output);
+                                                            fclose(output);
+                                                            output = fopen("output.xsm","a");
+                                                        }
+                                                        else{
                                                         Organize("output.xsm","preinitial.xsm");
                                                         output = fopen("output.xsm","a");
                                                         initGlobal(output);
                                                         fclose(output);
                                                         Organize("output.xsm","initial.xsm");
                                                         output = fopen("output.xsm","a");
-                                                        printf("Found GdeclBlock\n");
+                                                        }
+                                                        // printf("Found GdeclBlock\n");
                                                     }
                 | DECL ENDDECL                      {   
                                                         initialized = 1;
@@ -167,7 +177,7 @@ GdeclBlock      : DECL GdeclList ENDDECL            {
                                                         fclose(output);
                                                         Organize("output.xsm","initial.xsm");
                                                         output = fopen("output.xsm","a");
-                                                        printf("Found GdeclBlock\n");
+                                                        // printf("Found GdeclBlock\n");
                                                     }
                 ;
 
@@ -441,11 +451,11 @@ stmt            : inputstmt                     {
                                                 }
                 ;
 inputstmt       : READ '(' id ')' ';'           {
-                                                    printf("Found Read\n");
+                                                    // printf("Found Read\n");
                                                     $<tree>$ = createTree(-1,TLookup("VOID"),"Read",_READ,$<tree>3,NULL,NULL,NULL,NULL,NULL);
                                                 }
                 | READ '(' Field ')' ';'        {
-                                                    printf("Found Read\n");
+                                                    // printf("Found Read\n");
                                                     $<tree>$ = createTree(-1,TLookup("VOID"),"Read",_READ,$<tree>3,NULL,NULL,NULL,NULL,NULL);
                                                 }
                 ;
@@ -461,7 +471,7 @@ assignstmt      : id ASSIGN expr ';'            {
                                                         //         exit(1);
                                                         //     }
                                                         // }
-                                                        printf("Type is %d\n",$<tree>3->nodetype);
+                                                        // printf("Type is %d\n",$<tree>3->nodetype);
                                                         $<tree>$ = createTree(-1,TLookup("VOID"),"=",_ASSIGN,$<tree>1,$<tree>3,NULL,NULL,NULL,NULL);
                                                     
                                                 }
@@ -472,7 +482,7 @@ assignstmt      : id ASSIGN expr ';'            {
                                                         //         exit(1);
                                                         //     }
                                                         // }
-                                                        printf("Type is %d\n",$<tree>3->nodetype);
+                                                        // printf("Type is %d\n",$<tree>3->nodetype);
                                                         $<tree>$ = createTree(-1,TLookup("VOID"),"=",_ASSIGN,$<tree>1,$<tree>3,NULL,NULL,NULL,NULL);
                                                     }
                 | id ASSIGN ALLOC '(' ')' ';'       {
@@ -508,7 +518,7 @@ assignstmt      : id ASSIGN expr ';'            {
                                                         $<tree>$ = createTree(-1,TLookup("VOID"),"=",_ASSIGN,$<tree>1,$<tree>3,NULL,NULL,NULL,NULL);
                                                     }
                 | id ASSIGN NEW '(' ID ')' ';'      {  
-                                                        printf("From here\n"); 
+                                                        // printf("From here\n"); 
                                                         struct Classtable *t1 = $<tree>1->Ctype;
                                                         struct Classtable *temp = CLookup($<tree>5->varname);
                                                         if(temp==NULL){
@@ -882,10 +892,15 @@ int main(int argc, char* argv[]) {
 	}
     TypeTableCreate();
 	yyparse();
-    printTable();
+    /* printf("-----The Global symbol table-----\n");
+    printTable(); */
     /* inorder(root); */
     /* codegen(root,output); */
-   
+    green();
+    printf("Success.......\n");
+    yellow();
+    printf("Code generated in output.xsm\n");
+    reset();
     fclose(output);
 	/* print(r,output); */
 	return 0;

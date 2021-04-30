@@ -46,6 +46,7 @@ endclass
 decl
 int n;
 A obj;
+int a;
 enddecl
 int main() {
 decl
@@ -58,7 +59,7 @@ obj = new(A);
 else
 obj = new(B);
 endif;
-n = obj.f0();
+n = obj.f2();
 return 1;
 end
 }

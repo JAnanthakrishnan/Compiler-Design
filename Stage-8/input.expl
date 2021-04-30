@@ -1,93 +1,88 @@
 
+type
+list{
+int data;
+list next;
+}
+endtype
 class
-Person{
+linkedlist{
 decl
-str name;
-int age;
-int printDetails();
-str findName();
-int createPerson(str name, int age);
+list head;
+list tail;
+int length;
+int getlength();
+int init();
+list insert(int data);
+int printlinkedlist();
 enddecl
-int printDetails(){
-decl
-enddecl
+int getlength(){
 begin
-write(self.name);
-write(self.age);
+return self.length;
+end
+}
+int init(){
+begin
+self.head=null;
+self.tail=null;
+self.length=0;
 return 1;
 end
 }
-str findName(){
+list insert(int data){
 decl
+list temp;
 enddecl
 begin
-return self.name;
+temp=alloc();
+temp.data=data;
+temp.next=null;
+if(self.head== null)then
+self.head=temp;
+self.tail=temp;
+else
+self.tail.next=temp;
+self.tail=temp;
+endif;
+self.length=self.length+1;
+return temp;
 end
 }
-int createPerson(str name, int age){
+int printlinkedlist(){
 decl
+list temp;
 enddecl
 begin
-self.name=name;
-self.age=age;
-return 1;
-end
-}
-}
-Student extends Person{
-decl
-int rollnumber;
-str dept;
-int printDetails();
-int createStudent(str name, int age,int rollNo, str dept);
-enddecl
-int createStudent(str name, int age,int rollNo, str dept){
-decl
-enddecl
-begin
-self.name =name;
-self.age = age;
-self.rollnumber = rollNo;
-self.dept = dept;
-return 1;
-end
-}
-int printDetails(){
-decl
-enddecl
-begin
-write(self.name);
-write(self.age);
-write(self.rollnumber);
-write(self.dept);
+temp=self.head;
+while(temp!= null)do
+write(temp.data);
+temp=temp.next;
+endwhile;
 return 1;
 end
 }
 }
 endclass
 decl
-int n,temp;
-str name;
-Person first;
-Student second;
-Person arbitrary;
+linkedlist obj;
 enddecl
 int main(){
 decl
+int x,y,z;
+list a;
 enddecl
 begin
-n = initialize();
-first=new(Person);
-temp = first.createPerson("Rogers", 37);
-second=new(Student);
-temp = second.createStudent("Mathew", 35, 999, "CS");
-read(n);
-if (n>0) then
-arbitrary = first;
-else
-arbitrary = second;
-endif;
-n = arbitrary.printDetails();
-return 0;
+x=initialize();
+obj=new(linkedlist);
+x=obj.init();
+read(x);
+while(x!=0)do
+read(y);
+a=obj.insert(y);
+x=x-1;
+endwhile;
+write(obj.getlength());
+x=obj.printlinkedlist();
+return 1;
 end
 }

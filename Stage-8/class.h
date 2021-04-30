@@ -212,3 +212,9 @@ int getReg();
 void freeReg();
 
 void print(int r, FILE *output);
+
+//set colors
+void red();
+void green();
+void reset();
+void yellow();

@@ -4,8 +4,29 @@ extern struct Lsymbol *Lstart;
 extern struct Typetable *TypeTable;
 extern struct Fieldlist *FieldList;
 extern int bindingStart;
+extern int oexpl;
 extern struct Classtable *ClassTable;
 int cflabel = 0;
+
+void red()
+{
+    printf("\033[1;31m");
+}
+
+void green()
+{
+    printf("\033[1;32m");
+}
+
+void yellow()
+{
+    printf("\033[1;33m");
+}
+
+void reset()
+{
+    printf("\033[0m");
+}
 
 struct tnode *createTree(int val, struct Typetable *type, char *c, int nodetype, struct tnode *l, struct tnode *r, struct tnode *middle, struct Gsymbol *Gentry, struct Lsymbol *Lentry, struct tnode *arglist)
 {
@@ -81,7 +102,14 @@ void GInstall(char *name, struct Typetable *type, struct Classtable *Ctype, int 
     if (Gstart == NULL)
     {
         Gstart = newnode;
-        Gstart->binding = bindingStart + 1;
+        if (oexpl == 0)
+        {
+            Gstart->binding = 4096;
+        }
+        else
+        {
+            Gstart->binding = bindingStart + 1;
+        }
         Gstart->plist = plist;
         if (plist == NULL)
         {
@@ -192,7 +220,7 @@ void LPInstall(struct paramlist *plist)
         LInstall(plist->name, plist->type, 1);
         plist = plist->next;
     }
-    LInstall("Vptr",TLookup("NULL"),1);
+    LInstall("Vptr", TLookup("NULL"), 1);
     LInstall("SELF", TLookup("NULL"), 1);
 }
 
@@ -832,6 +860,7 @@ void printFieldList(struct Fieldlist *Flist)
 /*--initializing---*/
 void init(FILE *output)
 {
+    printf("here\n");
     fprintf(output, "0\n2056\n0\n0\n0\n0\n0\n0\n");
     fprintf(output, "MOV SP,%d\n", 4095);
     struct Classtable *temp = ClassTable;
@@ -850,6 +879,15 @@ void init(FILE *output)
             fprintf(output, "MOV SP,%d\n", bindingStart);
         temp = temp->next;
     }
+}
+
+void initExpl(FILE *output)
+{
+    fprintf(output, "0\n2056\n0\n0\n0\n0\n0\n0\n");
+    fprintf(output, "MOV SP, %d\n", getSP() - 1);
+    fprintf(output, "PUSH R0\n");
+    fprintf(output, "CALL MAIN\n");
+    fprintf(output, "MOV R0, 10\nPUSH R0\nINT 10\n");
 }
 
 void initGlobal(FILE *output)
