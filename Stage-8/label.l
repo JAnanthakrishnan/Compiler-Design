@@ -27,6 +27,20 @@ identifier {letter}({digit}|{letter})+
                                             fprintf(output,"%s",yytext);
                                         }
                                     }
+"CALL R0"                           {
+                                        if(pass){
+                                            fprintf(output,"%s",yytext);
+                                        }
+                                    }
+"MOV R0,"{identifier}               {
+                                        if(pass){
+                                            int address = search(label_table,yytext+7);
+                                            if(address == -1){
+                                                fprintf(output,"%s",yytext);
+                                            }else
+                                            fprintf(output,"MOV R0,%d",address);
+                                        }
+                                    }
 "CALL "{identifier}                 {
                                         if(pass){
                                             int address = search(label_table,yytext+5);
@@ -69,6 +83,7 @@ identifier {letter}({digit}|{letter})+
 
                                         }
                                     }
+
 {identifier}":""\n"      {if(!pass){ yytext[strlen(yytext)-2]='\0';insert(&label_table,yytext,linecount);}}
 "\n"                                {
                                         if(!pass)
@@ -121,6 +136,7 @@ int search (struct node* label_table, char *s){
         }
         temp= temp->next;
     }
+    return -1;
 }
 int main(int argc, char* argv[]) {
 	if(argc<2){

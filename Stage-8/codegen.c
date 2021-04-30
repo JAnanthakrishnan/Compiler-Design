@@ -1,5 +1,6 @@
 int MAX_REG = 20;
 int REG = -1;
+int Vfuncptr = -1;
 int LABEL = 0;
 extern struct Lsymbol *Lstart;
 int getReg()
@@ -64,8 +65,9 @@ int getAddress(struct tnode *t, FILE *output)
             fprintf(output, "ADD R%d, %d\n", r1, mflist->Fieldindex);
         return r1;
     }
-    if(t->nodetype==_SELF){
-        printLtable();
+    if (t->nodetype == _SELF)
+    {
+        // printLtable();
         int r1 = getReg();
         fprintf(output, "MOV R%d,BP\n", r1);
         fprintf(output, "ADD R%d,%d\n", r1, t->Lentry->binding);
@@ -155,6 +157,8 @@ void popArgs(struct tnode *t, FILE *output)
 int codegen(struct tnode *t, FILE *output)
 {
     int r1, r2, address, current = 0;
+    int r3;
+    int regtemp;
     int label1, label2;
     static int prevLabel1, prevLabel2;
     static int isWhile = 0;
@@ -181,17 +185,8 @@ int codegen(struct tnode *t, FILE *output)
         fprintf(output, "MOV R%d,%s\n", r1, t->varname);
         return r1;
     case _ID:
-        r1 = getAddress(t, output);
-        fprintf(output, "MOV R%d, [R%d]\n", r1, r1);
-        return r1;
     case _FIELD:
-        r1 = getAddress(t, output);
-        fprintf(output, "MOV R%d, [R%d]\n", r1, r1);
-        return r1;
     case _SELF:
-        r1 = getAddress(t, output);
-        fprintf(output, "MOV R%d, [R%d]\n", r1, r1);
-        return r1;
     case _ARR:
         r1 = getAddress(t, output);
         fprintf(output, "MOV R%d, [R%d]\n", r1, r1);
@@ -281,12 +276,27 @@ int codegen(struct tnode *t, FILE *output)
         {
             t->left->Gentry->value = t->right->val;
         }
-        printf("Now we will generate code for %s\n",t->left->varname);
         r1 = getAddress(t->left, output);
-        printf("Now we will generate code for %s and its type is %d\n",t->right->varname,t->right->nodetype);
         r2 = codegen(t->right, output);
-
         fprintf(output, "MOV [R%d], R%d\n", r1, r2);
+
+        if (t->right->nodetype == _NEW)
+        {
+            fprintf(output, "ADD R%d,1\n", r1);
+            fprintf(output, "MOV [R%d],R%d\n", r1, Vfuncptr);
+            freeReg(); //for Vfuncptr
+        }
+        // class A = class B
+        else if (t->left->Ctype != NULL)
+        {
+            r3 = getAddress(t->right, output);
+            fprintf(output, "ADD R%d,1\n", r3);
+            fprintf(output, "ADD R%d,1\n", r1);
+            fprintf(output, "MOV R%d,[R%d]\n", r3, r3);
+            fprintf(output, "MOV [R%d],R%d\n", r1, r3);
+            freeReg(); //for r3
+        }
+
         freeReg();
         freeReg();
         return 0;
@@ -334,6 +344,29 @@ int codegen(struct tnode *t, FILE *output)
         REG = current;
         break;
     case _NEW:
+        for (int i = 0; i <= REG; i++)
+            fprintf(output, "PUSH R%d\n", i);
+        current = REG;
+
+        fprintf(output, "MOV R0,\"Alloc\"\n"); //alloc
+        fprintf(output, "PUSH R0\n");
+        fprintf(output, "ADD SP,4\n");
+        fprintf(output, "CALL 0\n");
+        r1 = current + 1;                 //For storing the return value
+        fprintf(output, "POP R%d\n", r1); //the return value
+        fprintf(output, "SUB SP,4\n");
+
+        for (int i = current; i >= 0; i--)
+            fprintf(output, "POP R%d\n", i);
+        REG = current;
+        r1 = getReg();
+
+        //virtual function pointer
+        r2 = getReg();
+        Vfuncptr = r2;
+        fprintf(output, "MOV R%d,%d\n", Vfuncptr, 4096 + 8 * (t->left->Ctype->Class_index));
+        return r1;
+        break;
     case _ALLOC:
         for (int i = 0; i <= REG; i++)
             fprintf(output, "PUSH R%d\n", i);
@@ -479,7 +512,7 @@ int codegen(struct tnode *t, FILE *output)
         fprintf(output, "PUSH R0\n");
 
         /*----------calling the function---------*/
-        printf("The name is %s",t->varname);
+        printf("The name is %s", t->varname);
         fprintf(output, "CALL F%d\n", t->Gentry->flabel);
 
         /*--------Saving return value ----------*/
@@ -512,31 +545,37 @@ int codegen(struct tnode *t, FILE *output)
         // fprintf(output, "Pushing args\n");
         // printf("Here for %s and %d\n",t->varname,t->nodetype);
         // printf("Pushing args now\n");
-        //pushing self 
-        printf("Pushing self here\n");
-        printLtable();
-        printf("Now global\n");
-        printTable();
-        printf("Now we will generate code for %s of type %d\n",t->left->varname,t->left->nodetype);
-        printf("asdf\n");
-        r1 = codegen(t->left,output);
-        fprintf(output,"PUSH R%d\n",r1);
+        /*--------------pushing self-------------------*/
+        //*----------here we will obtaing memory address of object defined and push this address as self
+        fprintf(output,"BRKP\n");
+        r1 = codegen(t->left, output);
+        fprintf(output, "PUSH R%d\n", r1);
         freeReg();
 
+        // Pushing Virtual Function table pointer
+        r1 = getAddress(t->left,output);
+        fprintf(output, "ADD R%d, 1\n", r1);
+        fprintf(output, "MOV R%d, [R%d]\n", r1, r1);
+        fprintf(output, "PUSH R%d\n", r1);
+        
         t->arglist = pushArgs(t->arglist, output);
 
         /*------push one empty value for ret---------*/
         fprintf(output, "PUSH R0\n");
-        printf("Pushed ret\n");
-        printf("The field here is %s\n",t->left->varname);
+
+
         struct tnode *f = t->left;
-        while(f->right!=NULL){
+        while (f->right != NULL)
+        {
             f = f->right;
         }
-        printf("The rightmost %s\n",f->varname);
-        struct Memberfunclist *mentry = Class_Mlookup(f->Ctype,t->right->varname);
-        /*----------calling the function---------*/
-        fprintf(output, "CALL C%d\n", mentry->flabel);
+
+        printf("The rightmost %s\n", f->varname);
+        struct Memberfunclist *mentry = Class_Mlookup(f->Ctype, t->right->varname);
+        fprintf(output, "ADD R%d, %d\n", r1, mentry->Funcposition);
+        fprintf(output, "MOV R%d, [R%d]\n", r1, r1);
+        fprintf(output, "CALL R%d\n", r1);
+        freeReg();
 
         /*--------Saving return value ----------*/
         r1 = current + 1;
@@ -549,6 +588,7 @@ int codegen(struct tnode *t, FILE *output)
 
         /*--------Popping self ----------*/
         r1 = getReg();
+        fprintf(output, "POP R%d\n", r1);
         fprintf(output, "POP R%d\n", r1);
         freeReg();
 
@@ -566,7 +606,6 @@ int codegen(struct tnode *t, FILE *output)
         printf("Was done here\n");
         return r1;
         break;
-        
     }
 }
 void maingen(struct tnode *t, FILE *output)
@@ -586,14 +625,13 @@ void maingen(struct tnode *t, FILE *output)
 }
 void calleegen(struct tnode *t, FILE *output, struct Gsymbol *gentry, struct Memberfunclist *mentry)
 {
-    printf("Printing from calleegen\n");
+    // printf("Printing from calleegen\n");
     printLtable(Lstart);
     if (gentry != NULL)
         fprintf(output, "F%d:\n", gentry->flabel);
     else
     {
         fprintf(output, "C%d:\n", mentry->flabel);
-        
     }
     fprintf(output, "PUSH BP\n");
     fprintf(output, "MOV BP,SP\n");
@@ -606,14 +644,6 @@ void calleegen(struct tnode *t, FILE *output, struct Gsymbol *gentry, struct Mem
         temp = temp->next;
     }
     codegen(t, output);
-}
-void init(FILE *output)
-{
-    fprintf(output, "0\n2056\n0\n0\n0\n0\n0\n0\n");
-    fprintf(output, "MOV SP, %d\n", getSP() - 1);
-    fprintf(output, "PUSH R0\n");
-    fprintf(output, "CALL MAIN\n");
-    fprintf(output, "MOV R0, 10\nPUSH R0\nINT 10\n");
 }
 void print(int r, FILE *output)
 {

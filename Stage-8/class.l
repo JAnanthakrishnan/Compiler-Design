@@ -32,7 +32,7 @@ main        {return MAIN;}
 return      {return RETURN;}
 class       {return CLASS;}
 endclass    {return ENDCLASS;}
-Extends     {return Extends;}
+extends     {return Extends;}
 NOT         {return NOT;}
 "!"         {return NOT;}
 AND         {return AND;}

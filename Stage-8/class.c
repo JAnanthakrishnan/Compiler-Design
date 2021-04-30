@@ -3,6 +3,7 @@ extern struct Gsymbol *Gstart;
 extern struct Lsymbol *Lstart;
 extern struct Typetable *TypeTable;
 extern struct Fieldlist *FieldList;
+extern int bindingStart;
 extern struct Classtable *ClassTable;
 int cflabel = 0;
 
@@ -80,7 +81,7 @@ void GInstall(char *name, struct Typetable *type, struct Classtable *Ctype, int 
     if (Gstart == NULL)
     {
         Gstart = newnode;
-        Gstart->binding = 4096;
+        Gstart->binding = bindingStart + 1;
         Gstart->plist = plist;
         if (plist == NULL)
         {
@@ -191,7 +192,8 @@ void LPInstall(struct paramlist *plist)
         LInstall(plist->name, plist->type, 1);
         plist = plist->next;
     }
-    LInstall("SELF",TLookup("NULL"),1);
+    LInstall("Vptr",TLookup("NULL"),1);
+    LInstall("SELF", TLookup("NULL"), 1);
 }
 
 struct paramlist *PInstall(struct paramlist *head, char *name, struct Typetable *type)
@@ -299,11 +301,11 @@ void printTable()
     printf("Name\tType\tClass\tSize\tBinding\tFlabel\n");
     while (temp != NULL)
     {
-        if(temp->type!=NULL)
+        if (temp->type != NULL)
             printf("%s\t%s\tNULL\t%d\t%d\t%d\n", temp->name, temp->type->name, temp->size, temp->binding, temp->flabel);
         else
             printf("%s\tNULL\t%s\t%d\t%d\t%d\n", temp->name, temp->Ctype->name, temp->size, temp->binding, temp->flabel);
-        
+
         if (temp->plist != NULL)
         {
             printf("Funcion %s\n", temp->name);
@@ -531,8 +533,14 @@ struct Classtable *CInstall(char *name, char *parent_class_name)
     struct Classtable *newnode = (struct Classtable *)malloc(sizeof(struct Classtable));
     newnode->name = (char *)malloc(sizeof(name));
     strcpy(newnode->name, name);
-    newnode->Parentptr = CLookup(parent_class_name);
+    struct Classtable *parent = CLookup(parent_class_name);
+    newnode->Parentptr = parent;
     newnode->next = NULL;
+    if (parent_class_name != NULL && parent == NULL)
+    {
+        printf("Cannot inherit from undefined class\n");
+        exit(1);
+    }
     if (ClassTable == NULL)
     {
         newnode->Class_index = 0;
@@ -559,17 +567,48 @@ struct Classtable *CInstall(char *name, char *parent_class_name)
         exit(1);
     }
     newnode->Class_index = last->Class_index + 1;
-    newnode->Fieldcount = 0;
-    newnode->Methodcount = 0;
-    newnode->Memberfield = NULL;
-    newnode->Vfuncptr = NULL;
+    if (parent == NULL)
+    {
+        newnode->Fieldcount = 0;
+        newnode->Methodcount = 0;
+        newnode->Memberfield = NULL;
+        newnode->Vfuncptr = NULL;
+    }
+    else
+    {
+        newnode->Fieldcount = parent->Fieldcount;
+        newnode->Methodcount = parent->Methodcount;
+        installMemberfields(newnode, parent);
+        installVfuncptr(newnode, parent);
+    }
     last->next = newnode;
     return newnode;
 }
 
+void installMemberfields(struct Classtable *newnode, struct Classtable *parent)
+{
+    struct Memberfieldlist *flist = parent->Memberfield;
+    while (flist != NULL)
+    {
+        Class_Finstall(newnode, flist->Ctype, flist->type, flist->name);
+        flist = flist->next;
+    }
+}
+
+void installVfuncptr(struct Classtable *newnode, struct Classtable *parent)
+{
+    struct Memberfunclist *mlist = parent->Vfuncptr;
+    while (mlist != NULL)
+    {
+        Class_Minstall(newnode, mlist->name, mlist->type, mlist->paramlist);
+        mlist = mlist->next;
+    }
+}
+
 struct Classtable *CLookup(char *name)
 {
-    if(name==NULL){
+    if (name == NULL)
+    {
         return NULL;
     }
     if (ClassTable == NULL)
@@ -588,7 +627,7 @@ struct Classtable *CLookup(char *name)
     return NULL;
 }
 
-void Class_Finstall(struct Classtable* curr, struct Classtable *cptr, struct Typetable *type, char *name)
+void Class_Finstall(struct Classtable *curr, struct Classtable *cptr, struct Typetable *type, char *name)
 {
     struct Memberfieldlist *newnode = (struct Memberfieldlist *)malloc(sizeof(struct Memberfieldlist));
     newnode->name = (char *)malloc(sizeof(name));
@@ -600,6 +639,7 @@ void Class_Finstall(struct Classtable* curr, struct Classtable *cptr, struct Typ
     if (last == NULL)
     {
         curr->Memberfield = newnode;
+        curr->Fieldcount = 1;
         newnode->Fieldindex = 0;
         return;
     }
@@ -619,7 +659,7 @@ void Class_Finstall(struct Classtable* curr, struct Classtable *cptr, struct Typ
     }
     newnode->Fieldindex = last->Fieldindex + 1;
     last->next = newnode;
-    curr->Fieldcount++;
+    ++curr->Fieldcount;
 }
 
 struct Memberfieldlist *Class_Flookup(struct Classtable *Ctype, char *name)
@@ -655,8 +695,18 @@ void Class_Minstall(struct Classtable *cptr, char *name, struct Typetable *type,
     struct Memberfunclist *last = cptr->Vfuncptr;
     if (last == NULL)
     {
-        newnode->Funcposition = 1;
-        newnode->flabel = ++cflabel;
+        newnode->Funcposition = 0;
+        struct Memberfunclist *temp = Class_Mlookup(cptr->Parentptr, name);
+        if (temp != NULL)
+        {
+            newnode->flabel = temp->flabel;
+        }
+        else
+        {
+            newnode->flabel = ++cflabel;
+        }
+
+        cptr->Methodcount = 1;
         cptr->Vfuncptr = newnode;
         return;
     }
@@ -664,6 +714,12 @@ void Class_Minstall(struct Classtable *cptr, char *name, struct Typetable *type,
     {
         if (!strcmp(last->name, name))
         {
+            if (cptr->Parentptr != NULL)
+            {
+                // printf("Overriding the definition in parent class\n");
+                last->flabel = ++cflabel;
+                return;
+            }
             printf("Redclaration of member function %s\n", name);
             exit(1);
         }
@@ -671,13 +727,27 @@ void Class_Minstall(struct Classtable *cptr, char *name, struct Typetable *type,
     }
     if (!strcmp(last->name, name))
     {
+        if (cptr->Parentptr != NULL)
+        {
+            // printf("Overriding the definition in parent class\n");
+            last->flabel = ++cflabel;
+            return;
+        }
         printf("Redclaration of member function %s\n", name);
         exit(1);
     }
     newnode->Funcposition = last->Funcposition + 1;
-    newnode->flabel = ++cflabel;
+    struct Memberfunclist *temp = Class_Mlookup(cptr->Parentptr, name);
+    if (temp != NULL)
+    {
+        newnode->flabel = temp->flabel;
+    }
+    else
+    {
+        newnode->flabel = ++cflabel;
+    }
     last->next = newnode;
-    cptr->Methodcount++;
+    ++cptr->Methodcount;
 }
 
 struct Memberfunclist *Class_Mlookup(struct Classtable *Ctype, char *name)
@@ -700,6 +770,25 @@ struct Memberfunclist *Class_Mlookup(struct Classtable *Ctype, char *name)
         temp = temp->next;
     }
     return NULL;
+}
+
+void checkInherited(struct Classtable *c1, struct Classtable *c2)
+{
+    if (c1 == NULL)
+    {
+        printf("it is null\n");
+    }
+    while (c2 != NULL)
+    {
+        if (c1 == c2)
+        {
+            return;
+        }
+        // printf("The classname is %s and %s\n", c1->name, c2->name);
+        c2 = c2->Parentptr;
+    }
+    printf("Invalid reference to class\n");
+    exit(1);
 }
 
 int GetSize(struct Typetable *type)
@@ -739,4 +828,46 @@ void printFieldList(struct Fieldlist *Flist)
         printf("%s\t%s\n", temp->name, temp->type->name);
         temp = temp->next;
     }
+}
+/*--initializing---*/
+void init(FILE *output)
+{
+    fprintf(output, "0\n2056\n0\n0\n0\n0\n0\n0\n");
+    fprintf(output, "MOV SP,%d\n", 4095);
+    struct Classtable *temp = ClassTable;
+    while (temp != NULL)
+    {
+
+        struct Memberfunclist *mlist = temp->Vfuncptr;
+        while (mlist != NULL)
+        {
+            fprintf(output, "MOV R0,C%d\n", mlist->flabel);
+            fprintf(output, "PUSH R0\n");
+            mlist = mlist->next;
+        }
+        bindingStart = 4095 + (temp->Class_index + 1) * 8;
+        if (temp->next != NULL)
+            fprintf(output, "MOV SP,%d\n", bindingStart);
+        temp = temp->next;
+    }
+}
+
+void initGlobal(FILE *output)
+{
+
+    fprintf(output, "MOV SP, %d\n", getSP() - 1);
+    fprintf(output, "PUSH R0\n");
+    fprintf(output, "CALL MAIN\n");
+    fprintf(output, "MOV R0, 10\nPUSH R0\nINT 10\n");
+}
+
+void Organize(char *f1, char *f2)
+{
+    char ch;
+    FILE *output = fopen(f1, "a");
+    FILE *temp = fopen(f2, "r");
+    while ((ch = fgetc(temp)) != EOF)
+        fputc(ch, output);
+    fclose(temp);
+    fclose(output);
 }

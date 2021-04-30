@@ -11,6 +11,7 @@
     struct Typetable *TypeTable = NULL;
     struct Fieldlist *FieldList = NULL;
     struct paramlist *funparams = NULL;
+    int bindingStart = 0;
  	FILE *output;
     struct Typetable *var_type = NULL;
     struct Typetable *ftype = NULL;
@@ -60,25 +61,35 @@ Program         : TypeDefBlock ClassDefBlock FDefBlock MainBlock    {}
                 | GdeclBlock MainBlock                              {}
                 | MainBlock                                         {}
                 ;
-ClassDefBlock   : CLASS ClassDefList ENDCLASS       {printf("Found classdef block\n");}
+ClassDefBlock   : CLASS ClassDefList ENDCLASS       {
+                                                        char ch;
+                                                        fclose(output);
+                                                        output = fopen("preinitial.xsm","w");
+                                                        init(output);
+                                                        fclose(output);
+                                                    }
                 ;
 ClassDefList    : ClassDefList ClassDef             {}
                 | ClassDef                          {}
                 ;
-ClassDef        : Cname {cptr=CLookup($<classname>1->name); printf("Found the class %s\n",$<classname>1->name);} '{' DECL MFieldList MethodDecl ENDDECL MethodDefns '}'      {printf("%s def over\n",cptr->name);cptr = NULL;}
+ClassDef        : Cname {cptr=CLookup($<classname>1->name); } ClassBody {   
+                                                                            cptr = NULL;
+                                                                        }
                 ;
-Cname           : ID                                {printf("The class now is %s\n",$<tree>1->varname);$<classname>$ = CInstall($<tree>1->varname,NULL); }
+ClassBody       : '{' DECL MFieldList MethodDecl ENDDECL MethodDefns '}'  {}
+                | '{' DECL MethodDecl ENDDECL MethodDefns '}'             {}
+Cname           : ID                                {$<classname>$ = CInstall($<tree>1->varname,NULL); }
                 | ID  Extends ID                    {$<classname>$ = CInstall($<tree>1->varname,$<tree>3->varname);}
                 ;
-MFieldList      : MFieldList MFld                   {printf("Found Mfieldlist in %s 1\n",cptr->name);}
-                | MFld                              {printf("Found Mfieldlist in %s 2\n",cptr->name);}
+MFieldList      : MFieldList MFld                   {}
+                | MFld                              {}
                 ;
 MFld            : ClassType ID ';'                  {Class_Finstall(cptr,classentry,$<types>1,$<tree>2->varname); printf("INstalled\n");}
                 ;
-MethodDecl      : MethodDecl MDecl                  {printf("Method decl over 1\n");}
-                | MDecl                             {printf("Method decl over 2\n");}
+MethodDecl      : MethodDecl MDecl                  {}
+                | MDecl                             {}
                 ;
-MDecl           : ClassType ID '(' ParamList ')' ';'   {Class_Minstall(cptr,$<tree>2->varname,$<types>1,$<plist>4); printf("Found Function decl of %s\n",$<tree>2->varname);}
+MDecl           : ClassType ID '(' ParamList ')' ';'   {Class_Minstall(cptr,$<tree>2->varname,$<types>1,$<plist>4);}
                 ;
 ClassType       : INT                               {$<types>$ = TLookup("INT"); }
                 | STR                               {$<types>$ = TLookup("STR");}
@@ -96,7 +107,7 @@ ClassType       : INT                               {$<types>$ = TLookup("INT");
                                                     }
                 ;
 MethodDefns     : MethodDefns Fdef                  {}
-                | Fdef                              {printf("Found mfdef\n");}  
+                | Fdef                              {}  
                 ;  
                                  
 TypeDefBlock    : TYPE TypeDefList ENDTYPE          {printTypeTable();}                               
@@ -110,6 +121,7 @@ TypeDef         : ID {TInstall($<tree>1->varname,0,NULL);} '{' FieldDeclList '}'
                                                                                             struct Typetable *entry = TLookup($<tree>1->varname);
                                                                                             if(entry == NULL){
                                                                                                 printf("The type %s is not declared in typedef\n",$<tree>1->varname);
+                                                                                                exit(1);
                                                                                             }
                                                                                             entry->fields = FieldList;
                                                                                             entry->size = GetSize(entry);
@@ -138,27 +150,23 @@ TypeName        : INT                               {$<types>$ = TLookup("INT");
                                                     }
                 ;
 GdeclBlock      : DECL GdeclList ENDDECL            {
-                                                        char ch;
+                                                        initialized = 1;
+                                                        Organize("output.xsm","preinitial.xsm");
+                                                        output = fopen("output.xsm","a");
+                                                        initGlobal(output);
                                                         fclose(output);
-                                                        output = fopen("output.xsm","w");
-                                                        init(output);
-                                                        initialized = 1; 
-                                                        FILE *temp = fopen("initial.xsm","r");
-                                                        while( ( ch = fgetc(temp) ) != EOF )
-                                                             fputc(ch, output);
-                                                        fclose(temp);
+                                                        Organize("output.xsm","initial.xsm");
+                                                        output = fopen("output.xsm","a");
                                                         printf("Found GdeclBlock\n");
                                                     }
-                | DECL ENDDECL                      {       
-                                                        char ch;
+                | DECL ENDDECL                      {   
+                                                        initialized = 1;
+                                                        Organize("output.xsm","preinitial.xsm");
+                                                        output = fopen("output.xsm","a");
+                                                        initGlobal(output);
                                                         fclose(output);
-                                                        output = fopen("output.xsm","w");
-                                                        init(output);
-                                                        initialized = 1; 
-                                                        FILE *temp = fopen("initial.xsm","r");
-                                                        while( ( ch = fgetc(temp) ) != EOF )
-                                                             fputc(ch, output);
-                                                        fclose(temp);
+                                                        Organize("output.xsm","initial.xsm");
+                                                        output = fopen("output.xsm","a");
                                                         printf("Found GdeclBlock\n");
                                                     }
                 ;
@@ -174,14 +182,23 @@ GidList         : GidList ',' Gid                   {}
                 ;
 
 Gid             : ID                                {
-                                                    GInstall(($<tree>1)->varname,var_type,classentry,1,NULL);
+                                                    int size = 1;
+                                                    if(classentry!=NULL)
+                                                        size = 2;
+                                                    GInstall(($<tree>1)->varname,var_type,classentry,size,NULL);
                                                     classentry = NULL;
                                                     }
                 | ID '[' NUM ']'                    {
+                                                    int size = 1;
+                                                    if(classentry!=NULL)
+                                                        size = 2;
                                                     GInstall(($<tree>1)->varname,var_type,classentry,((1)*(($<tree>3)->val)),NULL);
                                                     classentry = NULL;
                                                     }
                 | ID '(' ParamList ')'              {
+                                                    int size = 1;
+                                                    if(classentry!=NULL)
+                                                        size = 2;
                                                     GInstall(($<tree>1)->varname,var_type,classentry,0,$<plist>3);
                                                     classentry = NULL;
                                                     }
@@ -198,7 +215,12 @@ Fdef            : Type ID '(' FinalParamlist ')' '{' LdeclBlock Body '}'        
                                                                                     printf("Function %s is not declared\n",$<tree>2->varname);
                                                                                     exit(1);
                                                                                 }
+                                                                               
                                                                                 if(temp!=NULL){
+                                                                                    if(temp->defined == 1){
+                                                                                    printf("Function %s is already defined\n",temp->name);
+                                                                                    exit(1);
+                                                                                    }
                                                                                     if(temp->type!=var_type){
                                                                                         printf("Mismatch in return type of function definition of %s\n",temp->name);
                                                                                         exit(1);
@@ -214,8 +236,6 @@ Fdef            : Type ID '(' FinalParamlist ')' '{' LdeclBlock Body '}'        
                                                                                         exit(1);
                                                                                     }
                                                                                 }
-                                                                                // for class defn
-                                
                                                                                 if(temp2!=NULL){
                                                                                     if(temp2->type!=var_type){
                                                                                         printf("Mismatch in return type of function definition of %s\n",temp2->name);
@@ -232,10 +252,10 @@ Fdef            : Type ID '(' FinalParamlist ')' '{' LdeclBlock Body '}'        
                                                                                         exit(1);
                                                                                     }
                                                                                 }
-                                                                              
-                                                                                setLocalbinding();
-                                                                                // printf("Inorder of %s\n",$<tree>2->varname);
-                                                                                // inorder($<tree>8);
+                                                                                if(temp!=NULL){
+                                                                                    temp->defined = 1;
+                                                                                }
+                                                                                setLocalbinding();                        
                                                                                 calleegen($<tree>8,output,temp,temp2);
                                                                                 Lstart = NULL;
                                                                                 installed = 0;
@@ -260,19 +280,13 @@ LdeclBlock      : DECL LDecList ENDDECL                                     {
                                                                                 LPInstall(funparams);
                                                                                 installed  = 1;
                                                                                 } 
-                                                                                // printf("Local symbol table \n");
-                                                                                // printLtable();
-                                                                                 
                                                                                 funparams = NULL;
                                                                             }
                 | DECL ENDDECL                                              {   
                                                                                 if(!installed){
                                                                                 LPInstall(funparams);
                                                                                 installed  = 1;
-                                                                                }  
-                                                                                // printf("Local symbol table \n");
-                                                                                // printLtable();
-                                                                                 
+                                                                                }                                                                                   
                                                                                 funparams = NULL;
                                                                             }
                 |                                                           {}
@@ -286,9 +300,7 @@ LDecl           : LType IdList ';'                           {}
                 ;
 
 IdList          : IdList ',' ID                             {
-                                                              
                                                                 LInstall(($<tree>3)->varname,ltype,0);
-                                                                // printf("Found LocalId list \n");
                                                             }
                 | ID                                        {
                                                                 if(!installed){
@@ -296,29 +308,28 @@ IdList          : IdList ',' ID                             {
                                                                     installed  = 1;
                                                                 }
                                                                 LInstall(($<tree>1)->varname,ltype,0);
-                                                                // printf("Found Local Id\n");
                                                             }
                 ;
 Body            : START instructions RetStmt END            {
-                                                                // printf("Found Body\n");
                                                                 $<tree>$ = createTree(-1,TLookup("VOID"),"Stmnt",_CONNECTOR,$<tree>2,$<tree>3,NULL,NULL,NULL,NULL);
-                                                                //  printf("Printin inorder ...\n");inorder($<tree>$);printf("\n");
                                                             }  
                 | START RetStmt END                         {
-                                                                // {printf("Found Body\n");
                                                                 $<tree>$ = createTree(-1,TLookup("VOID"),"Stmnt",_CONNECTOR,NULL,$<tree>2,NULL,NULL,NULL,NULL);
-                                                                // printf("Printin inorder ...\n");inorder($<tree>$);printf("\n");
                                                             }  
                                                             
                 ;
 MainBlock       : INT MAIN '(' ')' '{' LdeclBlock Body '}'  {
                                                                 if(!initialized){
-                                                                    init(output);
+                                                                    initialized = 1;
+                                                                    Organize("output.xsm","preinitial.xsm");
+                                                                    output = fopen("output.xsm","a");
+                                                                    initGlobal(output);
+                                                                    fclose(output);
+                                                                    Organize("output.xsm","initial.xsm");
+                                                                    output = fopen("output.xsm","a");
+                                                                    printf("Found GdeclBlock\n");
                                                                 }
-                                                                // printf("Found MainBlock\n");
-                                                                // printf("Printing local table of main\n");
                                                                 setLocalbinding();
-                                                                // printLtable();
                                                                 maingen($<tree>7,output);
                                                                 Lstart = NULL;
                                                                 installed = 0;
@@ -326,7 +337,6 @@ MainBlock       : INT MAIN '(' ')' '{' LdeclBlock Body '}'  {
                                                             }
                 ;
 RetStmt     	: RETURN expr ';'	                        {   
-                                                                // printf("Found ret stmt\n");
                                                                 $<tree>$ = createTree(-1,TLookup("VOID"),"RetStmt",_RETURN,$<tree>2,NULL,NULL,NULL,NULL,NULL);
                                                             }	
 	            ;
@@ -434,6 +444,10 @@ inputstmt       : READ '(' id ')' ';'           {
                                                     printf("Found Read\n");
                                                     $<tree>$ = createTree(-1,TLookup("VOID"),"Read",_READ,$<tree>3,NULL,NULL,NULL,NULL,NULL);
                                                 }
+                | READ '(' Field ')' ';'        {
+                                                    printf("Found Read\n");
+                                                    $<tree>$ = createTree(-1,TLookup("VOID"),"Read",_READ,$<tree>3,NULL,NULL,NULL,NULL,NULL);
+                                                }
                 ;
 outputstmt      : WRITE '(' expr ')' ';'          {
                                                     // printf("Found Write\n");
@@ -482,19 +496,28 @@ assignstmt      : id ASSIGN expr ';'            {
                                                     }
           
                 | Field ASSIGN NEW '(' ID ')' ';'   {
+                                                        printf("The field classname is %s\n",$<tree>1->Ctype);
                                                         struct Classtable *temp = CLookup($<tree>5->varname);
                                                         if(temp==NULL){
                                                             printf("Class %s is not defined \n",$<tree>5->varname);
                                                             exit(1);
                                                         }
+                                                        checkInherited($<tree>1->Ctype,temp);
+                                                        $<tree>5->Ctype = temp;
+                                                        $<tree>3->left = $<tree>5;
                                                         $<tree>$ = createTree(-1,TLookup("VOID"),"=",_ASSIGN,$<tree>1,$<tree>3,NULL,NULL,NULL,NULL);
                                                     }
-                | id ASSIGN NEW '(' ID ')' ';'      {   
+                | id ASSIGN NEW '(' ID ')' ';'      {  
+                                                        printf("From here\n"); 
+                                                        struct Classtable *t1 = $<tree>1->Ctype;
                                                         struct Classtable *temp = CLookup($<tree>5->varname);
                                                         if(temp==NULL){
                                                             printf("Class %s is not defined \n",$<tree>5->varname);
                                                             exit(1);
                                                         }
+                                                        checkInherited(t1,temp);
+                                                        $<tree>5->Ctype = temp;
+                                                        $<tree>3->left = $<tree>5;
                                                         $<tree>$ = createTree(-1,TLookup("VOID"),"=",_ASSIGN,$<tree>1,$<tree>3,NULL,NULL,NULL,NULL);
                                                     }
                 ;
@@ -579,7 +602,7 @@ expr            : expr PLUS expr                {
                                                 }
                 | ID '(' ArgList ')'            {
                                                     
-                                                    printArgs($<tree>3);
+                                                    // printArgs($<tree>3);
                                                     struct Gsymbol * temp = Lookup($<tree>1->varname);
                                                     if(temp==NULL){
                                                         printf("The function %s is not declared\n ",$<tree>1->varname);
@@ -627,7 +650,9 @@ Field           : SELF '.' ID                   {
                                                     strcpy(f0,$<tree>1->varname);
                                                     char *f1 = strcat(f0,".");
                                                     char *f2 = strcat(f1,$<tree>3->varname);
-                                                    $<tree>$ = createTree(-1,mfld->type,f2,_FIELD,$<tree>1,$<tree>3,NULL,NULL,NULL,NULL);                                                    
+                                                    $<tree>$ = createTree(-1,mfld->type,f2,_FIELD,$<tree>1,$<tree>3,NULL,NULL,NULL,NULL);     
+                                                    if(mfld!=NULL)  
+                                                    $<tree>$->Ctype = mfld->Ctype;                                             
                                                 }
                 | Field '.' ID                  {
                                                     struct tnode *t = $<tree>1;
@@ -654,7 +679,8 @@ Field           : SELF '.' ID                   {
                                                         t->right = newnode;
                                                         $<tree>$ = $<tree>1;
                                                     }
-                                                    $<tree>$->Ctype = t->Ctype;
+                                                    if(mfld!=NULL)
+                                                    $<tree>$->Ctype = mfld->Ctype;
 
                                                 }
                 | ID '.' ID                     {
@@ -703,11 +729,12 @@ Field           : SELF '.' ID                   {
                                                         $<tree>3->type = mfld->type;
                                                         $<tree>$ = createTree(-1,mfld->type,f2,_FIELD,$<tree>1,$<tree>3,NULL,$<tree>1->Gentry,$<tree>1->Lentry,NULL);
                                                     }
-                                                    $<tree>$->Ctype = currClass;
+                                                    if(mfld!=NULL)
+                                                    $<tree>$->Ctype = mfld->Ctype;
                                                 }
                 ;
 FieldFunction   : SELF '.' ID '(' ArgList ')'   {
-                                                    printf("Found SELF.%s\n",$<tree>3->varname);
+                                                    // printf("Found SELF.%s\n",$<tree>3->varname);
                                                     // printArgs($<tree>5);
                                                     if(cptr==NULL){
                                                         printf("SELF can be used only inside a class\n");
@@ -732,7 +759,7 @@ FieldFunction   : SELF '.' ID '(' ArgList ')'   {
 
                                                 }
                 | ID '.' ID '(' ArgList ')'     {
-                                                    printArgs($<tree>5);
+                                                    // printArgs($<tree>5);
                                                     struct Gsymbol * temp = Lookup($<tree>1->varname);
                                                     if(temp==NULL){
                                                         printf("The variable %s is not declared\n ",$<tree>1->varname);
@@ -744,6 +771,7 @@ FieldFunction   : SELF '.' ID '(' ArgList ')'   {
                                                             exit(1);
                                                         }
                                                     }
+
                                                     struct Memberfunclist *memfun = Class_Mlookup(temp->Ctype,$<tree>3->varname);
                                                     if(memfun==NULL){
                                                         printf("The function %s is not declared in %s\n ",$<tree>3->varname,$<tree>1->varname);
@@ -845,6 +873,8 @@ int main(int argc, char* argv[]) {
 				exit(1);
 			}
 	}
+    output = fopen("output.xsm","w");
+    fclose(output);
     output = fopen("initial.xsm","w");
 	if(!output){
 		printf("Unable to open output file\n");

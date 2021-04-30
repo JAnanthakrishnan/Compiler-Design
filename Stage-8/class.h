@@ -53,8 +53,8 @@ union Constant
 
 typedef struct tnode
 {
-    int val;                    // value of a number for NUM nodes.
-    struct Typetable *type;     //type of variable
+    int val;                // value of a number for NUM nodes.
+    struct Typetable *type; //type of variable
     struct Classtable *Ctype;
     char *varname;              //name of a variable for ID nodes
     union Constant value;       //stores the value of the constant if the node corresponds to a constant
@@ -68,11 +68,11 @@ typedef struct tnode
 
 typedef struct Gsymbol
 {
-    char *name;              // name of the variable
-    struct Typetable *type;  // type of the variable
+    char *name;               // name of the variable
+    struct Typetable *type;   // type of the variable
     struct Classtable *Ctype; //for storing class
-    int size;            // size of the type of the variable
-    int binding;             // stores the static memory address allocated to the variable
+    int size;                 // size of the type of the variable
+    int binding;              // stores the static memory address allocated to the variable
     int value;
     struct paramlist *plist; //pointer to the head of the formal parameter list
                              //in the case of functions
@@ -154,8 +154,7 @@ typedef struct Memberfunclist
 struct tnode *createTree(int val, struct Typetable *type, char *c, int nodetype, struct tnode *l, struct tnode *r, struct tnode *middle, struct Gsymbol *Gentry, struct Lsymbol *Lentry, struct tnode *arglist);
 
 //---------Global Symbol Table--------------------//
-struct Gsymbol *Lookup(char *name); // Returns a pointer to the symbol table entry for the variable, returns NULL otherwise.
-
+struct Gsymbol *Lookup(char *name);                                                                             // Returns a pointer to the symbol table entry for the variable, returns NULL otherwise.
 void GInstall(char *name, struct Typetable *type, struct Classtable *Ctype, int size, struct paramlist *plist); // Creates a symbol table entry.
 
 //---------Local Symbol Table------------------------//
@@ -164,6 +163,7 @@ void LPInstall(struct paramlist *plist);
 struct Lsymbol *LocLookup(char *name);
 void setLocalbinding();
 void printLtable();
+
 //---------Param List -----------------//
 struct paramlist *PInstall(struct paramlist *head, char *name, struct Typetable *type);
 struct paramlist *AddParam(struct paramlist *head, struct paramlist *oldlist);
@@ -173,24 +173,27 @@ int nameEquivalence(struct paramlist *p1, struct paramlist *p2);
 struct tnode *appendArg(struct tnode *arglist, struct tnode *arg);
 void printArgs(struct tnode *arglist);
 int checkArgs(struct tnode *arglist, struct paramlist *plist);
-
 void typecheck(struct tnode *head);
 
 //----------Class Table----------------//
 struct Classtable *CInstall(char *name, char *parent_class_name);
 struct Classtable *CLookup(char *name);
-void Class_Finstall(struct Classtable *curr,struct Classtable *cptr, struct Typetable *type, char *name);
+void installMemberfields(struct Classtable *newnode, struct Classtable *parent);
+void installVfuncptr(struct Classtable *newnode, struct Classtable *parent);
+void Class_Finstall(struct Classtable *curr, struct Classtable *cptr, struct Typetable *type, char *name);
 void Class_Minstall(struct Classtable *cptr, char *name, struct Typetable *type, struct paramlist *Paramlist);
 struct Memberfunclist *Class_Mlookup(struct Classtable *Ctype, char *name);
 struct Memberfieldlist *Class_Flookup(struct Classtable *Ctype, char *name);
+void checkInherited(struct Classtable *c1,struct Classtable *c2);
 
 //--------Codegeneration--------------//
 void init(FILE *output);
 int codegen(struct tnode *t, FILE *output);
-void calleegen(struct tnode *t, FILE *output, struct Gsymbol *gentry,struct Memberfunclist *mentry);
+void calleegen(struct tnode *t, FILE *output, struct Gsymbol *gentry, struct Memberfunclist *mentry);
 void maingen(struct tnode *t, FILE *output);
 struct tnode *revArgs(struct tnode *t);
 struct tnode *pushArgs(struct tnode *t, FILE *output);
+void Organize(char *f1, char *f2);
 
 //----------Type Table Methods-----------//
 void TypeTableCreate();
