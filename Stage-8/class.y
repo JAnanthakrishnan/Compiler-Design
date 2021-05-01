@@ -112,7 +112,9 @@ MethodDefns     : MethodDefns Fdef                  {}
                 | Fdef                              {}  
                 ;  
                                  
-TypeDefBlock    : TYPE TypeDefList ENDTYPE          {printTypeTable();}                               
+TypeDefBlock    : TYPE TypeDefList ENDTYPE          {
+                                                        // printTypeTable();
+                                                    }                               
                 ;
 
 TypeDefList     : TypeDefList TypeDef               {}
@@ -195,21 +197,21 @@ Gid             : ID                                {
                                                     int size = 1;
                                                     if(classentry!=NULL)
                                                         size = 2;
-                                                    GInstall(($<tree>1)->varname,var_type,classentry,size,NULL);
+                                                    GInstall(($<tree>1)->varname,var_type,classentry,size,NULL,0);
                                                     classentry = NULL;
                                                     }
                 | ID '[' NUM ']'                    {
                                                     int size = 1;
                                                     if(classentry!=NULL)
                                                         size = 2;
-                                                    GInstall(($<tree>1)->varname,var_type,classentry,((1)*(($<tree>3)->val)),NULL);
+                                                    GInstall(($<tree>1)->varname,var_type,classentry,((1)*(($<tree>3)->val)),NULL,0);
                                                     classentry = NULL;
                                                     }
                 | ID '(' ParamList ')'              {
                                                     int size = 1;
                                                     if(classentry!=NULL)
                                                         size = 2;
-                                                    GInstall(($<tree>1)->varname,var_type,classentry,0,$<plist>3);
+                                                    GInstall(($<tree>1)->varname,var_type,classentry,0,$<plist>3,1);
                                                     classentry = NULL;
                                                     }
                 ;
@@ -247,6 +249,10 @@ Fdef            : Type ID '(' FinalParamlist ')' '{' LdeclBlock Body '}'        
                                                                                     }
                                                                                 }
                                                                                 if(temp2!=NULL){
+                                                                                    if(temp2->defined == 1){
+                                                                                        printf("Function %s is already defined in %s\n",temp2->name,cptr->name);
+                                                                                        exit(1);
+                                                                                    }
                                                                                     if(temp2->type!=var_type){
                                                                                         printf("Mismatch in return type of function definition of %s\n",temp2->name);
                                                                                         exit(1);
@@ -264,6 +270,10 @@ Fdef            : Type ID '(' FinalParamlist ')' '{' LdeclBlock Body '}'        
                                                                                 }
                                                                                 if(temp!=NULL){
                                                                                     temp->defined = 1;
+                                                                                }
+                                                                                if(temp2!=NULL){
+                                                                                    // printf("The name is %s\n",temp2->name);
+                                                                                    temp2->defined = 1;
                                                                                 }
                                                                                 setLocalbinding();                        
                                                                                 calleegen($<tree>8,output,temp,temp2);
@@ -385,10 +395,10 @@ LType           : INT                               {ltype = TLookup("INT"); }
                                                         ltype = TLookup($<tree>1->varname);
                                                     }
                 ;
-ifstmt          : IF '(' expr ')' THEN instructions ELSE instructions ENDIF ';'  {  $<tree>$ = createTree(-1,TLookup("VOID"),"IFELSE",_IFELSE,$<tree>6,$<tree>8,$<tree>3,NULL,NULL,NULL);}
-                | IF '(' expr ')' THEN instructions ENDIF ';'                    {$<tree>$ = createTree(-1,TLookup("VOID"),"IF",_IF,$<tree>6,NULL,$<tree>3,NULL,NULL,NULL);}                                                                     
+ifstmt          : IF '(' expr ')' THEN instructions ELSE instructions ENDIF ';'  {  $<tree>$ = createTree(-1,TLookup("VOID"),"IFELSE",_IFELSE,$<tree>6,$<tree>8,$<tree>3,NULL,NULL,NULL); typecheck($<tree>$,IF);}
+                | IF '(' expr ')' THEN instructions ENDIF ';'                    {$<tree>$ = createTree(-1,TLookup("VOID"),"IF",_IF,$<tree>6,NULL,$<tree>3,NULL,NULL,NULL); typecheck($<tree>$,IF);}                                                                     
                 ;
-whilestmt       : WHILE '(' expr ')' DO instructions ENDWHILE ';'                               { $<tree>$ = createTree(-1,TLookup("VOID"),"WHILE",_WHILE,$<tree>6,NULL,$<tree>3,NULL,NULL,NULL);}
+whilestmt       : WHILE '(' expr ')' DO instructions ENDWHILE ';'                               { $<tree>$ = createTree(-1,TLookup("VOID"),"WHILE",_WHILE,$<tree>6,NULL,$<tree>3,NULL,NULL,NULL);  typecheck($<tree>$,WHILE);}
                 ;
 instructions    : instructions stmt             {
                                                    
@@ -506,7 +516,7 @@ assignstmt      : id ASSIGN expr ';'            {
                                                     }
           
                 | Field ASSIGN NEW '(' ID ')' ';'   {
-                                                        printf("The field classname is %s\n",$<tree>1->Ctype);
+                                                        // printf("The field classname is %s\n",$<tree>1->Ctype);
                                                         struct Classtable *temp = CLookup($<tree>5->varname);
                                                         if(temp==NULL){
                                                             printf("Class %s is not defined \n",$<tree>5->varname);
@@ -534,46 +544,46 @@ assignstmt      : id ASSIGN expr ';'            {
 expr            : expr PLUS expr                {
                                                     // printf("PLUS\n");
                                                     $<tree>$ = createTree($<tree>1->val+$<tree>3->val,TLookup("INT"),"+",_PLUS,$<tree>1,$<tree>3,NULL,NULL,NULL,NULL);
-                                                    typecheck($<tree>$);
+                                                    typecheck($<tree>$,PLUS);
                                                 }
                 | expr MINUS expr               {
                                                     // printf("MINUS\n");
                                                     $<tree>$ = createTree($<tree>1->val-$<tree>3->val,TLookup("INT"),"-",_MINUS,$<tree>1,$<tree>3,NULL,NULL,NULL,NULL);
-                                                    typecheck($<tree>$);
+                                                    typecheck($<tree>$,MINUS);
                                                 }
                 | expr MUL expr                 {
                                                     // printf("MUL\n");
                                                     $<tree>$ = createTree($<tree>1->val*$<tree>3->val,TLookup("INT"),"*",_MUL,$<tree>1,$<tree>3,NULL,NULL,NULL,NULL);
-                                                    typecheck($<tree>$);
+                                                    typecheck($<tree>$,MUL);
                                                 }
                 | expr DIV expr                 {
                                                     // printf("DIV\n");
                                                     $<tree>$ = createTree($<tree>1->val/$<tree>3->val,TLookup("INT"),"/",_DIV,$<tree>1,$<tree>3,NULL,NULL,NULL,NULL);
-                                                    typecheck($<tree>$);
+                                                    typecheck($<tree>$,DIV);
                                                 }
                 | expr MOD expr                 {
                                                     $<tree>$ = createTree($<tree>1->val%$<tree>3->val,TLookup("INT"),"%",_MOD,$<tree>1,$<tree>3,NULL,NULL,NULL,NULL);
-                                                    typecheck($<tree>$);
+                                                    typecheck($<tree>$,MOD);
                                                 }
                 | expr LT expr                  {
                                                     // printf("LT\n");
                                                     $<tree>$ = createTree(-1,TLookup("BOOL"),"LT",_LT,$<tree>1,$<tree>3,NULL,NULL,NULL,NULL);
-                                                    typecheck($<tree>$);
+                                                    typecheck($<tree>$,LT);
                                                 }
                 | expr GT expr                  {
                                                     // printf("GT\n");
                                                     $<tree>$ = createTree(-1,TLookup("BOOL"),"GT",_GT,$<tree>1,$<tree>3,NULL,NULL,NULL,NULL);
-                                                   typecheck($<tree>$);
+                                                   typecheck($<tree>$,GT);
                                                 }
                 | expr GTE expr                 {
                                                     // printf("GTE\n");
                                                     $<tree>$ = createTree(-1,TLookup("BOOL"),"GE",_GTE,$<tree>1,$<tree>3,NULL,NULL,NULL,NULL);
-                                                    typecheck($<tree>$);
+                                                    typecheck($<tree>$,GTE);
                                                 }
                 | expr LTE expr                 {
                                                     // printf("LTE\n");
                                                     $<tree>$ = createTree(-1,TLookup("BOOL"),"LE",_LTE,$<tree>1,$<tree>3,NULL,NULL,NULL,NULL);
-                                                    typecheck($<tree>$);
+                                                    typecheck($<tree>$,LTE);
                                                 }
                 | expr EQ expr                  {
                                                     // if($<tree>3->nodetype==_NULLTYPE){
@@ -583,7 +593,7 @@ expr            : expr PLUS expr                {
                                                     //     }
                                                     // }
                                                     $<tree>$ = createTree(-1,TLookup("BOOL"),"EQ",_EQ,$<tree>1,$<tree>3,NULL,NULL,NULL,NULL);
-                                                    typecheck($<tree>$);
+                                                    typecheck($<tree>$,EQ);
                                                 }
                 | expr NEQ expr                 {
                                                     // if($<tree>3->nodetype==_NULLTYPE){
@@ -593,25 +603,24 @@ expr            : expr PLUS expr                {
                                                     //     }
                                                     // }
                                                     $<tree>$ = createTree(-1,TLookup("BOOL"),"NE",_NEQ,$<tree>1,$<tree>3,NULL,NULL,NULL,NULL);
-                                                    typecheck($<tree>$);
+                                                    typecheck($<tree>$,NEQ);
                                                 }
                 | expr AND expr                 {
                                                     $<tree>$ = createTree(-1,TLookup("BOOL"),"AND",_AND,$<tree>1,$<tree>3,NULL,NULL,NULL,NULL);
-                                                    typecheck($<tree>$);
+                                                    typecheck($<tree>$,AND);
                                                 }
                 | expr OR expr                  {
                                                     $<tree>$ = createTree(-1,TLookup("BOOL"),"AND",_AND,$<tree>1,$<tree>3,NULL,NULL,NULL,NULL);
-                                                    typecheck($<tree>$);
+                                                    typecheck($<tree>$,OR);
                                                 }
                 | NOT expr                      {
                                                     $<tree>$ = createTree(-1,TLookup("BOOL"),"AND",_AND,$<tree>1,NULL,NULL,NULL,NULL,NULL);
-                                                    typecheck($<tree>$);
+                                                    typecheck($<tree>$,NOT);
                                                 }
                 | '(' expr ')'                  {
                                                     $<tree>$=$<tree>2;
                                                 }
-                | ID '(' ArgList ')'            {
-                                                    
+                | ID '(' ArgList ')'            {                                                  
                                                     // printArgs($<tree>3);
                                                     struct Gsymbol * temp = Lookup($<tree>1->varname);
                                                     if(temp==NULL){
@@ -714,12 +723,19 @@ Field           : SELF '.' ID                   {
                                                     $<tree>1->type = temp->type;
                                                     currType = temp->type;
                                                     }
-                                                    if(currType->fields==NULL&&currClass==NULL){
-                                                        printf("%s is not a record or class\n",$<tree>1->varname);
-                                                        exit(1);
-                                                    }
+                                                    checkAccess(currType,currClass,$<tree>1->varname);
+            
+                                                    // if(currType->fields==NULL&&currClass==NULL){
+                                                    //     printf("%s is not a record or class\n",$<tree>1->varname);
+                                                    //     exit(1);
+                                                    // }
                                                     struct Fieldlist *fld = FLookup(currType,$<tree>3->varname);
                                                     struct Memberfieldlist *mfld = Class_Flookup(currClass,$<tree>3->varname);
+                                                    //accessing member fields
+                                                    if(currClass!=NULL&&mfld!=NULL){
+                                                        printf("Class fields cannot be accessed from outside the class\n");
+                                                        exit(1);
+                                                    }
                                                     if(fld==NULL && mfld==NULL){
                                                         printf("Field %s is not in record or class %s\n",$<tree>3->varname,$<tree>1->varname);
                                                         exit(1);
@@ -760,7 +776,7 @@ FieldFunction   : SELF '.' ID '(' ArgList ')'   {
                                                     $<tree>1->Ctype = cptr;
                                                     $<tree>3->nodetype = _FUNCTION;
                                                     if(checkArgs($<tree>5,temp->paramlist)){
-                                                       $<tree>$ = createTree(-1,TLookup("VOID"),$<tree>3->varname,_FIELDFUN,$<tree>1,$<tree>3,NULL,NULL,NULL,$<tree>5);
+                                                       $<tree>$ = createTree(-1,temp->type,$<tree>3->varname,_FIELDFUN,$<tree>1,$<tree>3,NULL,NULL,NULL,$<tree>5);
                                                     }
                                                     else{
                                                         printf("Invalid arguments in the function call with %s",temp->name);
@@ -803,7 +819,7 @@ FieldFunction   : SELF '.' ID '(' ArgList ')'   {
 
                                                 }
                 | Field '.' ID '(' ArgList ')'  {
-                                                    printf("The field is %s\n",$<tree>1->varname);
+                                                    // printf("The field is %s\n",$<tree>1->varname);
                                                     
                                                     struct tnode *temp = $<tree>1;
                                                     while(temp->right!=NULL){
@@ -815,7 +831,7 @@ FieldFunction   : SELF '.' ID '(' ArgList ')'   {
                                                         exit(1);
                                                     }
 
-                                                    printf("The class name is %s\n",temp->Ctype->name);
+                                                    // printf("The class name is %s\n",temp->Ctype->name);
                                                     struct Memberfunclist *memfun = Class_Mlookup(temp->Ctype,$<tree>3->varname);
                                                     if(memfun==NULL){
                                                         printf("The function %s is not declared in %s\n ",$<tree>3->varname,temp->varname);
@@ -871,6 +887,7 @@ void yyerror(char const *s)
 }
 
 int main(int argc, char* argv[]) {
+    red();
 	if(argc<2){
 		printf("Input file is required\n");
 		exit(1);
@@ -896,11 +913,19 @@ int main(int argc, char* argv[]) {
     printTable(); */
     /* inorder(root); */
     /* codegen(root,output); */
-    green();
-    printf("Success.......\n");
-    yellow();
-    printf("Code generated in output.xsm\n");
-    reset();
+    if(!checkDefined()){
+        green();
+        printf("Success.......\n");
+        yellow();
+        printf("Code generated in output.xsm\n");
+        reset();
+    }
+    else{
+        yellow();
+        printf("Compiled with warnings...\n");
+        printf("Code generated in output.xsm\n");
+        reset();
+    }
     fclose(output);
 	/* print(r,output); */
 	return 0;

@@ -147,6 +147,7 @@ typedef struct Memberfunclist
     int Funcposition;            //position of the function in the class table
     int flabel;                  //A label for identifying the starting address of the function's code in the memory
     struct Memberfunclist *next; //pointer to next Memberfunclist entry
+    int defined;
 } Memberfunclist;
 
 /*----------------Create a node tnode--------------------*/
@@ -154,8 +155,8 @@ typedef struct Memberfunclist
 struct tnode *createTree(int val, struct Typetable *type, char *c, int nodetype, struct tnode *l, struct tnode *r, struct tnode *middle, struct Gsymbol *Gentry, struct Lsymbol *Lentry, struct tnode *arglist);
 
 //---------Global Symbol Table--------------------//
-struct Gsymbol *Lookup(char *name);                                                                             // Returns a pointer to the symbol table entry for the variable, returns NULL otherwise.
-void GInstall(char *name, struct Typetable *type, struct Classtable *Ctype, int size, struct paramlist *plist); // Creates a symbol table entry.
+struct Gsymbol *Lookup(char *name);                                                                                         // Returns a pointer to the symbol table entry for the variable, returns NULL otherwise.
+void GInstall(char *name, struct Typetable *type, struct Classtable *Ctype, int size, struct paramlist *plist, int isfunc); // Creates a symbol table entry.
 
 //---------Local Symbol Table------------------------//
 void LInstall(char *name, struct Typetable *type, int isArg);
@@ -173,7 +174,7 @@ int nameEquivalence(struct paramlist *p1, struct paramlist *p2);
 struct tnode *appendArg(struct tnode *arglist, struct tnode *arg);
 void printArgs(struct tnode *arglist);
 int checkArgs(struct tnode *arglist, struct paramlist *plist);
-void typecheck(struct tnode *head);
+void typecheck(struct tnode *head,int op);
 
 //----------Class Table----------------//
 struct Classtable *CInstall(char *name, char *parent_class_name);
@@ -184,7 +185,7 @@ void Class_Finstall(struct Classtable *curr, struct Classtable *cptr, struct Typ
 void Class_Minstall(struct Classtable *cptr, char *name, struct Typetable *type, struct paramlist *Paramlist);
 struct Memberfunclist *Class_Mlookup(struct Classtable *Ctype, char *name);
 struct Memberfieldlist *Class_Flookup(struct Classtable *Ctype, char *name);
-void checkInherited(struct Classtable *c1,struct Classtable *c2);
+void checkInherited(struct Classtable *c1, struct Classtable *c2);
 
 //--------Codegeneration--------------//
 void init(FILE *output);
@@ -218,3 +219,8 @@ void red();
 void green();
 void reset();
 void yellow();
+void blue();
+
+void checkAccess(struct Typetable *currType, struct Classtable *currClass, char *name);
+
+int checkDefined();

@@ -61,7 +61,7 @@ int getAddress(struct tnode *t, FILE *output)
         fprintf(output, "MOV R%d, [R%d]\n", r1, r1);
         if (flist != NULL)
             fprintf(output, "ADD R%d, %d\n", r1, flist->fieldIndex);
-        else
+        else if (mflist != NULL)
             fprintf(output, "ADD R%d, %d\n", r1, mflist->Fieldindex);
         return r1;
     }
@@ -156,8 +156,9 @@ void popArgs(struct tnode *t, FILE *output)
 
 int codegen(struct tnode *t, FILE *output)
 {
+    int l;
     int r1, r2, address, current = 0;
-    int r3;
+    int r3, r4;
     int regtemp;
     int label1, label2;
     static int prevLabel1, prevLabel2;
@@ -210,9 +211,40 @@ int codegen(struct tnode *t, FILE *output)
         freeReg();
         return r1;
     case _DIV:
+        l = getLabel();
         r1 = codegen(t->left, output);
         r2 = codegen(t->right, output);
+        r3 = getReg();
+        r4 = getReg();
+        fprintf(output, "BRKP\n");
+        fprintf(output, "MOV R%d, R%d\n", r3, r2);
+        fprintf(output, "MOV R%d, %d\n", r4, 0);
+        fprintf(output, "EQ R%d,R%d\n", r3, r4);
+        fprintf(output, "JZ R%d,L%d\n", r3, l);
+        //printing division by zero is not possible and terminating
+        //-------------------------------------------------------
+        for (int i = 0; i <= REG; i++)
+            fprintf(output, "PUSH R%d\n", i);
+        current = REG;
+
+        fprintf(output, "MOV R0,\"Write\"\n");
+        fprintf(output, "PUSH R0\n"); // function code  for "Write"
+        fprintf(output, "MOV R0,-2\n");
+        fprintf(output, "PUSH R0\n"); //Argument 1
+        fprintf(output, "MOV R0,\"DIVBYZERO\"\n");
+        fprintf(output, "PUSH R0\n");
+        fprintf(output, "ADD SP,2\n");
+        fprintf(output, "CALL 0\n");
+        fprintf(output, "SUB SP,5\n");
+        for (int i = current; i >= 0; i--)
+            fprintf(output, "POP R%d\n", i);
+        REG = current;
+        fprintf(output, "INT 10\n");
+        //--------------------------------------------------------
+        fprintf(output, "L%d:\n", l);
         fprintf(output, "DIV R%d, R%d\n", r1, r2);
+        freeReg();
+        freeReg();
         freeReg();
         return r1;
     case _MOD:
@@ -512,7 +544,7 @@ int codegen(struct tnode *t, FILE *output)
         fprintf(output, "PUSH R0\n");
 
         /*----------calling the function---------*/
-        printf("The name is %s", t->varname);
+        // printf("The name is %s\n", t->varname);
         fprintf(output, "CALL F%d\n", t->Gentry->flabel);
 
         /*--------Saving return value ----------*/
@@ -547,22 +579,21 @@ int codegen(struct tnode *t, FILE *output)
         // printf("Pushing args now\n");
         /*--------------pushing self-------------------*/
         //*----------here we will obtaing memory address of object defined and push this address as self
-        fprintf(output,"BRKP\n");
+        // fprintf(output, "BRKP\n");
         r1 = codegen(t->left, output);
         fprintf(output, "PUSH R%d\n", r1);
         freeReg();
 
         // Pushing Virtual Function table pointer
-        r1 = getAddress(t->left,output);
+        r1 = getAddress(t->left, output);
         fprintf(output, "ADD R%d, 1\n", r1);
         fprintf(output, "MOV R%d, [R%d]\n", r1, r1);
         fprintf(output, "PUSH R%d\n", r1);
-        
+
         t->arglist = pushArgs(t->arglist, output);
 
         /*------push one empty value for ret---------*/
         fprintf(output, "PUSH R0\n");
-
 
         struct tnode *f = t->left;
         while (f->right != NULL)

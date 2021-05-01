@@ -1,4 +1,5 @@
 
+#include "y.tab.h"
 extern struct Gsymbol *Gstart;
 extern struct Lsymbol *Lstart;
 extern struct Typetable *TypeTable;
@@ -21,6 +22,11 @@ void green()
 void yellow()
 {
     printf("\033[1;33m");
+}
+
+void blue()
+{
+    printf("\033[1;34m");
 }
 
 void reset()
@@ -86,10 +92,8 @@ struct Lsymbol *LocLookup(char *name)
     return NULL;
 }
 
-void GInstall(char *name, struct Typetable *type, struct Classtable *Ctype, int size, struct paramlist *plist)
+void GInstall(char *name, struct Typetable *type, struct Classtable *Ctype, int size, struct paramlist *plist, int isfunc)
 {
-    //type = 0 => int
-    //type = 1 => str
     struct Gsymbol *newnode = (struct Gsymbol *)malloc(sizeof(struct Gsymbol));
     newnode->name = (char *)malloc(sizeof(name));
     strcpy(newnode->name, name);
@@ -98,7 +102,10 @@ void GInstall(char *name, struct Typetable *type, struct Classtable *Ctype, int 
     newnode->size = size;
     newnode->plist = plist;
     newnode->next = NULL;
-    newnode->defined = 0;
+    if (isfunc == 0)
+        newnode->defined = -1;
+    else
+        newnode->defined = 0;
     if (Gstart == NULL)
     {
         Gstart = newnode;
@@ -111,7 +118,7 @@ void GInstall(char *name, struct Typetable *type, struct Classtable *Ctype, int 
             Gstart->binding = bindingStart + 1;
         }
         Gstart->plist = plist;
-        if (plist == NULL)
+        if (isfunc == 0)
         {
             Gstart->flabel = -1;
         }
@@ -138,7 +145,7 @@ void GInstall(char *name, struct Typetable *type, struct Classtable *Ctype, int 
         printf("Redeclaration of variable ....Terminating\n");
         exit(1);
     }
-    if (plist == NULL)
+    if (isfunc == 0)
     {
         newnode->flabel = last->flabel;
         newnode->binding = last->binding + last->size;
@@ -373,49 +380,68 @@ int getSP()
     return temp->binding + temp->size;
 }
 
-void typecheck(struct tnode *head)
+void typecheck(struct tnode *head, int op)
 {
-    // printf("Type : %s Left :%d Right %d\n", head->varname, head->left->type, head->right->type);
-    // int flag = 0;
-    // if (head->nodetype == _AND || head->nodetype == _OR)
-    // {
-    //     if (head->left->type && head->right->type)
-    //     {
-    //         if (head->left->type != _BOOLEAN || head->right->type != _BOOLEAN)
-    //         {
-    //             flag = 1;
-    //         }
-    //     }
-    //     else
-    //     {
-    //         flag = 1;
-    //     }
-    // }
-    // if (head->nodetype == _NOT)
-    // {
-    //     if (head->left->type)
-    //     {
-    //         if (head->left->type != _BOOLEAN)
-    //         {
-    //             flag = 1;
-    //         }
-    //     }
-    //     else
-    //     {
-    //         flag = 1;
-    //     }
-    // }
-    // if (head->left->nodetype == _STRING || head->right->nodetype == _STRING)
-    // {
-    //     flag = 1;
-    // }
-    // if (flag == 0)
-    //     return;
-    // else
-    // {
-    //     printf("Type mismatch\n");
-    //     exit(1);
-    // }
+    struct tnode *left = head->left;
+    struct tnode *right = head->right;
+    struct tnode *middle = head->middle;
+    switch (op)
+    {
+    case PLUS:
+    case MINUS:
+    case MUL:
+    case DIV:
+    case MOD:
+    case LT:
+    case LTE:
+    case GT:
+    case GTE:
+    case AND:
+    case OR:
+        if (left->type != right->type)
+        {
+            printf("Type mismatch \n");
+            exit(1);
+        }
+        break;
+    case EQ:
+    case NEQ:
+        if (right->nodetype == _NULLTYPE)
+        {
+            // printf("The left type is %s\n",left->type->name);
+            if (left->type == TLookup("INT") || left->type == TLookup("STR"))
+            {
+                printf("Cannot assign null to INT or STR\n");
+                exit(1);
+            }
+        }
+        else
+        {
+            if (left->type != right->type)
+            {
+                printf("The types are different and cannot be compared\n");
+                exit(1);
+            }
+        }
+        break;
+    case IF:
+    case WHILE:
+        if(middle->type!=TLookup("BOOL")){
+            printf("Condition must be of boolean type\n");
+            exit(1);
+        }
+        break;
+    case NOT:
+        if (left->type != TLookup("INT"))
+        {
+            printf("Type mismatch in NOT\n");
+            exit(1);
+        }
+        break;
+
+    default:
+        break;
+    }
     return;
 }
 
@@ -540,6 +566,10 @@ struct Typetable *TLookup(char *name)
 
 struct Fieldlist *FLookup(struct Typetable *type, char *name)
 {
+    if (type == NULL)
+    {
+        return NULL;
+    }
     struct Fieldlist *temp = type->fields;
     if (temp == NULL)
     {
@@ -720,6 +750,12 @@ void Class_Minstall(struct Classtable *cptr, char *name, struct Typetable *type,
     newnode->type = type;
     newnode->paramlist = Paramlist;
     newnode->next = NULL;
+    if (Class_Mlookup(cptr->Parentptr, name) != NULL)
+    {
+        newnode->defined = 2;
+    }
+    else
+        newnode->defined = 0;
     struct Memberfunclist *last = cptr->Vfuncptr;
     if (last == NULL)
     {
@@ -860,7 +896,7 @@ void printFieldList(struct Fieldlist *Flist)
 /*--initializing---*/
 void init(FILE *output)
 {
-    printf("here\n");
+    // printf("here\n");
     fprintf(output, "0\n2056\n0\n0\n0\n0\n0\n0\n");
     fprintf(output, "MOV SP,%d\n", 4095);
     struct Classtable *temp = ClassTable;
@@ -897,6 +933,68 @@ void initGlobal(FILE *output)
     fprintf(output, "PUSH R0\n");
     fprintf(output, "CALL MAIN\n");
     fprintf(output, "MOV R0, 10\nPUSH R0\nINT 10\n");
+}
+
+void checkAccess(struct Typetable *currType, struct Classtable *currClass, char *name)
+{
+    int isRecord = 1;
+    int isClass = 1;
+    if (currClass == NULL)
+    {
+        isClass = 0;
+    }
+    if (currType == NULL)
+    {
+        isRecord = 0;
+    }
+    else if (currType->fields == NULL)
+    {
+        isRecord = 0;
+    }
+    if (isRecord == 0 && isClass == 0)
+    {
+        printf("%s is not a class or record\n", name);
+        exit(1);
+    }
+}
+
+int checkDefined()
+{
+    int flag = 0;
+    struct Classtable *temp = ClassTable;
+    blue();
+    while (temp != NULL)
+    {
+
+        struct Memberfunclist *flist = temp->Vfuncptr;
+        while (flist != NULL)
+        {
+            if (flist->defined == 0)
+            {
+                printf("Warning => function %s is declared but not defined in %s\n", flist->name, temp->name);
+                flag++;
+            }
+            flist = flist->next;
+        }
+        temp = temp->next;
+    }
+    struct Gsymbol *temp2 = Gstart;
+    while (temp2 != NULL)
+    {
+        if (temp2->defined == 0)
+        {
+            printf("Warning => function %s is declared but not defined\n", temp2->name);
+            flag++;
+        }
+        temp2 = temp2->next;
+    }
+    reset();
+    if (flag == 0)
+    {
+        return 0;
+    }
+    else
+        return 1;
 }
 
 void Organize(char *f1, char *f2)

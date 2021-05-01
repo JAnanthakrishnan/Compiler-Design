@@ -1,88 +1,101 @@
-
 type
-list{
-int data;
-list next;
-}
+  node
+  {
+    int d;
+    int s;
+    int t;
+  }
+  List
+  {
+    int a;
+    int b;
+    node g;
+    List next;
+  }
 endtype
-class
-linkedlist{
 decl
-list head;
-list tail;
-int length;
-int getlength();
-int init();
-list insert(int data);
-int printlinkedlist();
+  node y,z;
+  List head;
+  int insert(int a,int b,node g);
+  node gcd(int m,int n);
 enddecl
-int getlength(){
-begin
-return self.length;
-end
+int insert(int a,int b,node g)
+{
+  decl
+    List p,q;
+    node temp;
+  enddecl
+  begin
+      p=alloc();
+      p.a=a;
+      p.b=b;
+      temp=alloc();
+      temp.d=g.d;
+      temp.s=g.s;
+      temp.t=g.t;
+      p.g=temp;
+      if (head== null) then
+          p.next=null;
+          head=p;
+      else
+          p.next=head;
+          head=p;
+      endif;
+  return 0;
+  end
 }
-int init(){
-begin
-self.head=null;
-self.tail=null;
-self.length=0;
-return 1;
-end
+
+node gcd(int m,int n){
+
+  decl
+    int q,r,temp;
+  enddecl
+
+  begin
+    if(n==0) then
+        y.d = m;
+        y.s = 1;
+        y.t = 0;
+    else
+        q = m/n;
+        r = m-q*n;
+        z = gcd(n,r);
+        temp = z.s;
+        y.s = z.t;
+        y.t = temp - (q*z.t);
+    endif;
+    temp=insert(m,n,y);
+    return y;
+  end
 }
-list insert(int data){
-decl
-list temp;
-enddecl
-begin
-temp=alloc();
-temp.data=data;
-temp.next=null;
-if(self.head== null)then
-self.head=temp;
-self.tail=temp;
-else
-self.tail.next=temp;
-self.tail=temp;
-endif;
-self.length=self.length+1;
-return temp;
-end
-}
-int printlinkedlist(){
-decl
-list temp;
-enddecl
-begin
-temp=self.head;
-while(temp!= null)do
-write(temp.data);
-temp=temp.next;
-endwhile;
-return 1;
-end
-}
-}
-endclass
-decl
-linkedlist obj;
-enddecl
-int main(){
-decl
-int x,y,z;
-list a;
-enddecl
-begin
-x=initialize();
-obj=new(linkedlist);
-x=obj.init();
-read(x);
-while(x!=0)do
-read(y);
-a=obj.insert(y);
-x=x-1;
-endwhile;
-write(obj.getlength());
-x=obj.printlinkedlist();
-return 1;
-end
+
+int main()
+{
+  decl
+    int a,b,c;
+    node res;
+  enddecl
+
+  begin
+    c = initialize();
+    y = alloc();
+    read(a);
+    read(b);
+    head=null;
+    res = gcd(a,b);
+    write(res.d);
+    write(res.s);
+    write(res.t);
+    write("stack");
+    while(head!= null) do
+        write(head.a);
+        write(head.b);
+        write(head.g.d);
+        write(head.g.s);
+        write(head.g.t);
+        head=head.next;
+        write("next");
+    endwhile;
+    return 0;
+  end
 }
