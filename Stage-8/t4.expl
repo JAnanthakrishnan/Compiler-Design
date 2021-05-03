@@ -71,16 +71,9 @@ str name;
 Person first;
 Student second;
 Person arbitrary;
-int clear();
-int y();
-int z();
-int as();
-Person x;
 enddecl
 int main(){
 decl
-int a;
-int b;
 enddecl
 begin
 n = initialize();
@@ -95,7 +88,6 @@ else
 arbitrary = second;
 endif;
 n = arbitrary.printDetails();
-n = clear();
 return 0;
 end
 }

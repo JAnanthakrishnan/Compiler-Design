@@ -426,7 +426,8 @@ void typecheck(struct tnode *head, int op)
         break;
     case IF:
     case WHILE:
-        if(middle->type!=TLookup("BOOL")){
+        if (middle->type != TLookup("BOOL"))
+        {
             printf("Condition must be of boolean type\n");
             exit(1);
         }
@@ -923,7 +924,9 @@ void initExpl(FILE *output)
     fprintf(output, "MOV SP, %d\n", getSP() - 1);
     fprintf(output, "PUSH R0\n");
     fprintf(output, "CALL MAIN\n");
-    fprintf(output, "MOV R0, 10\nPUSH R0\nINT 10\n");
+    // fprintf(output, "MOV R0, 10\nPUSH R0\nINT 10\n");
+    fprintf(output, "POP R0\n");
+    fprintf(output, "INT 10\n");
 }
 
 void initGlobal(FILE *output)
@@ -932,7 +935,9 @@ void initGlobal(FILE *output)
     fprintf(output, "MOV SP, %d\n", getSP() - 1);
     fprintf(output, "PUSH R0\n");
     fprintf(output, "CALL MAIN\n");
-    fprintf(output, "MOV R0, 10\nPUSH R0\nINT 10\n");
+    // fprintf(output, "MOV R0, 10\nPUSH R0\nINT 10\n");
+    fprintf(output, "POP R0\n");
+    fprintf(output, "INT 10\n");
 }
 
 void checkAccess(struct Typetable *currType, struct Classtable *currClass, char *name)

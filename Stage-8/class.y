@@ -475,40 +475,34 @@ outputstmt      : WRITE '(' expr ')' ';'          {
                                                 }
                 ;
 assignstmt      : id ASSIGN expr ';'            {
-                                                        // if($<tree>3->nodetype==_NULLTYPE){
-                                                        //     if($<tree>1->type->fields==NULL){
-                                                        //         printf("%s is not a record type\n",$<tree>1->varname);
-                                                        //         exit(1);
-                                                        //     }
-                                                        // }
-                                                        // printf("Type is %d\n",$<tree>3->nodetype);
+                                                        if($<tree>3->nodetype==_NULLTYPE){
+                                                            checkAccess($<tree>1->type,$<tree>1->Ctype,$<tree>1->varname);
+                                                        }
+                                                        if($<tree>1->type!=$<tree>3->type){
+                                                            printf("Type mismatch here\n");
+                                                        }
                                                         $<tree>$ = createTree(-1,TLookup("VOID"),"=",_ASSIGN,$<tree>1,$<tree>3,NULL,NULL,NULL,NULL);
                                                     
                                                 }
                 | Field ASSIGN expr ';'             {
-                                                        // if($<tree>3->nodetype==_NULLTYPE){
-                                                        //     if($<tree>1->type->fields==NULL){
-                                                        //         printf("%s is not a record type\n",$<tree>1->varname);
-                                                        //         exit(1);
-                                                        //     }
-                                                        // }
-                                                        // printf("Type is %d\n",$<tree>3->nodetype);
+                                                        if($<tree>3->nodetype==_NULLTYPE){
+                                                           checkAccess($<tree>1->type,$<tree>1->Ctype,$<tree>1->varname);
+                                                        }
                                                         $<tree>$ = createTree(-1,TLookup("VOID"),"=",_ASSIGN,$<tree>1,$<tree>3,NULL,NULL,NULL,NULL);
                                                     }
                 | id ASSIGN ALLOC '(' ')' ';'       {
-                                                        // if($<tree>1->type->fields==NULL){
-                                                        //     printf("%s is not a record type\n",$<tree>1->varname);
-                                                        //     exit(1);
-                                                        // }
-                                                        
+                                                        if($<tree>1->type->fields==NULL){
+                                                            printf("%s is not a record type\n",$<tree>1->varname);
+                                                            exit(1);
+                                                        }
                                                         $<tree>$ = createTree(-1,TLookup("VOID"),"=",_ASSIGN,$<tree>1,$<tree>3,NULL,NULL,NULL,NULL);
                                                     }
                 | Field ASSIGN ALLOC '(' ')' ';'    {
                                                          
-                                                        // if($<tree>1->type->fields==NULL){
-                                                        //     printf("%s is not a record type\n",$<tree>1->varname);
-                                                        //     exit(1);
-                                                        // }
+                                                        if($<tree>1->type->fields==NULL){
+                                                            printf("%s is not a record type\n",$<tree>1->varname);
+                                                            exit(1);
+                                                        }
                                                         $<tree>$ = createTree(-1,TLookup("VOID"),"=",_ASSIGN,$<tree>1,$<tree>3,NULL,NULL,NULL,NULL);
                                                     }
                 | id ASSIGN INITIALIZE '(' ')' ';'  {
