@@ -478,8 +478,11 @@ assignstmt      : id ASSIGN expr ';'            {
                                                         if($<tree>3->nodetype==_NULLTYPE){
                                                             checkAccess($<tree>1->type,$<tree>1->Ctype,$<tree>1->varname);
                                                         }
-                                                        if($<tree>1->type!=$<tree>3->type){
-                                                            printf("Type mismatch here\n");
+                                                        if($<tree>3->nodetype!=_NULLTYPE){
+                                                            if($<tree>1->type!=$<tree>3->type){
+                                                                printf("Type mismatch here %s and %s\n",$<tree>1->varname,$<tree>3->varname);
+                                                                exit(1);
+                                                            }
                                                         }
                                                         $<tree>$ = createTree(-1,TLookup("VOID"),"=",_ASSIGN,$<tree>1,$<tree>3,NULL,NULL,NULL,NULL);
                                                     
@@ -487,6 +490,12 @@ assignstmt      : id ASSIGN expr ';'            {
                 | Field ASSIGN expr ';'             {
                                                         if($<tree>3->nodetype==_NULLTYPE){
                                                            checkAccess($<tree>1->type,$<tree>1->Ctype,$<tree>1->varname);
+                                                        }
+                                                        if($<tree>3->nodetype!=_NULLTYPE){
+                                                            if($<tree>1->type!=$<tree>3->type){
+                                                                printf("Type mismatch here %s and %s\n",$<tree>1->varname,$<tree>3->varname);
+                                                                exit(1);
+                                                            }
                                                         }
                                                         $<tree>$ = createTree(-1,TLookup("VOID"),"=",_ASSIGN,$<tree>1,$<tree>3,NULL,NULL,NULL,NULL);
                                                     }
